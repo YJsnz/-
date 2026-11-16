@@ -18,7 +18,7 @@
 | 验收 | 以指导书官方样例的输出逐行一致为准 |
 | 仓库 | `https://github.com/YJsnz/-.git`，主分支 `main` |
 
-**当前进度：阶段 0 进行中（P0-1～P0-4 已完成）。下一次开发：P0-5。**
+**当前进度：阶段 0 进行中（P0-1～P0-5 已完成）。下一次开发：P0-6。**
 
 ---
 
@@ -165,7 +165,7 @@
 - [x] **P0-2** `scripts/build.sh`：`g++ -std=c++17` 编译全部源文件，输出 `build/compiler`
 - [x] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
 - [x] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
-- [ ] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）
+- [x] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）
 - [ ] **P0-6** 官方样例入库：`tests/official/exp1..exp4/`（按指导书样例与输出）
 - [ ] **P0-7** `README.md`：项目说明、构建/运行方式、目录导航、当前进度
 
@@ -357,7 +357,7 @@ python tools/capture.py \
 
 ### 7.4 复现文档模板
 
-`docs/repro/<ID>_<名称>/README.md` 必须包含以下六个部分：
+`docs/repro/<ID>_<名称>/README.md` 必须包含以下七个部分（模板见 `docs/repro/_TEMPLATE/README.md`）：
 
 ```markdown
 # <功能ID> <功能名称>

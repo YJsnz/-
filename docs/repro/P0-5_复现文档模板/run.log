@@ -1,0 +1,53 @@
+# P0-5 复现文档模板验证
+# 时间: 2026-11-16 10:56:03
+# 提交: 23809cf
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ find docs/repro -maxdepth 2 -type d | sort
+docs/repro
+docs/repro/_TEMPLATE
+docs/repro/P0-1_目录结构
+docs/repro/P0-1_目录结构/screenshots
+docs/repro/P0-2_构建脚本
+docs/repro/P0-2_构建脚本/screenshots
+docs/repro/P0-3_验证脚本
+docs/repro/P0-3_验证脚本/screenshots
+docs/repro/P0-4_截图工具
+docs/repro/P0-4_截图工具/screenshots
+docs/repro/P0-5_复现文档模板
+docs/repro/P0-5_复现文档模板/screenshots
+[exit 0]
+
+$ grep -n "^## " docs/repro/_TEMPLATE/README.md
+14:## 1. 目的
+18:## 2. 环境
+25:## 3. 前置条件
+29:## 4. 复现步骤
+55:## 5. 预期输出
+61:## 6. 截图
+73:## 7. 备注
+[exit 0]
+
+$ head -n 16 docs/repro/_TEMPLATE/README.md
+# <功能ID> <功能名称>
+
+<!--
+复现文档模板（P0-5）
+
+用法：
+1. 复制本文件到 docs/repro/<功能ID>_<中文短名>/README.md
+2. 创建 screenshots/ 目录，截图命名为 01-<场景>.png
+3. 用 tools/capture.py 生成截图与上一级 run.log
+4. 替换全部 <...> 占位符，删除本注释块
+5. 提交前按 AGENTS.md §4.6 与附录 A 逐项检查
+-->
+
+## 1. 目的
+
+<!-- 一句话说明本功能解决什么问题、对应指导书哪一节、对应 TODO 哪个 ID。 -->
+[exit 0]
+
+$ wc -l docs/repro/_TEMPLATE/README.md
+75 docs/repro/_TEMPLATE/README.md
+[exit 0]
