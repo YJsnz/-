@@ -1760,6 +1760,62 @@ int main() {
         check(has_error(diagnostics, 'h', 3), "无效 return; 报 h");
         check(!has_error(diagnostics, 'h', 4), "已有有效 return 时右花括号不报 h");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nint x;\nx = a['x'];\n}\n", parsed);
+        check(parsed, "字符下标表达式程序仍可继续解析");
+        check(has_error(diagnostics, 'i', 4), "表达式中字符下标报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\na['x'] = 1;\n}\n", parsed);
+        check(parsed, "赋值左侧字符下标程序仍可继续解析");
+        check(has_error(diagnostics, 'i', 3), "赋值左侧字符下标报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2];\nvoid main(){\nint x;\nx = a['x'][1];\n}\n", parsed);
+        check(parsed, "二维数组第一维字符下标程序仍可继续解析");
+        check(has_error(diagnostics, 'i', 4), "第一维字符下标报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2];\nvoid main(){\nint x;\nx = a[1]['x'];\n}\n", parsed);
+        check(parsed, "二维数组第二维字符下标程序仍可继续解析");
+        check(has_error(diagnostics, 'i', 4), "第二维字符下标报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nchar c;\nint x;\nx = a[c];\n}\n", parsed);
+        check(parsed, "字符变量下标程序仍可继续解析");
+        check(has_error(diagnostics, 'i', 5), "字符变量下标报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nint x;\nx = a[1];\n}\n", parsed);
+        check(parsed, "整型下标程序解析成功");
+        check(!has_any_error(diagnostics, 'i'), "整型下标不报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nint x;\nx = a['x' + 1];\n}\n", parsed);
+        check(parsed, "字符参与运算的下标程序解析成功");
+        check(!has_any_error(diagnostics, 'i'), "字符参与运算后为整型，不报 i");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nchar c;\nint x;\nx = a[(c)];\n}\n", parsed);
+        check(parsed, "括号字符下标程序解析成功");
+        check(!has_any_error(diagnostics, 'i'), "括号内字符视为整型，不报 i");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

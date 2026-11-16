@@ -674,15 +674,23 @@ bool Parser::parse_assignment_statement() {
     (void)lookup_or_report(name_token);
 
     if (ok_ && match(lexer::TokenKind::LBracket)) {
+        const lexer::Token bracket_token = previous_;
         if (!parse_expression()) {
             return false;
+        }
+        if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
+            syntax_error('i', bracket_token, "数组下标只能为整型");
         }
         if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
             return false;
         }
         if (ok_ && match(lexer::TokenKind::LBracket)) {
+            const lexer::Token second_bracket_token = previous_;
             if (!parse_expression()) {
                 return false;
+            }
+            if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
+                syntax_error('i', second_bracket_token, "数组下标只能为整型");
             }
             if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
                 return false;
@@ -1001,17 +1009,26 @@ bool Parser::parse_factor() {
         last_factor_type_ = symbol != nullptr ? symbol->type
                                              : semantic::DataType::Unknown;
         if (ok_ && current().kind == lexer::TokenKind::LBracket) {
+            const lexer::Token bracket_token = current();
             advance();
             if (!parse_expression()) {
                 return false;
+            }
+            if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
+                syntax_error('i', bracket_token, "数组下标只能为整型");
             }
             if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
                 return false;
             }
             if (ok_ && current().kind == lexer::TokenKind::LBracket) {
+                const lexer::Token second_bracket_token = current();
                 advance();
                 if (!parse_expression()) {
                     return false;
+                }
+                if (recovery_ &&
+                    last_expression_type_ == semantic::DataType::Char) {
+                    syntax_error('i', second_bracket_token, "数组下标只能为整型");
                 }
                 if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
                     return false;
