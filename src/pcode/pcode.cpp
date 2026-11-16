@@ -1,0 +1,61 @@
+#include "pcode/pcode.h"
+
+namespace pcode {
+
+const char* opcode_name(OpCode op) {
+    switch (op) {
+        case OpCode::Lit:
+            return "LIT";
+        case OpCode::Lod:
+            return "LOD";
+        case OpCode::Sto:
+            return "STO";
+        case OpCode::Opr:
+            return "OPR";
+        case OpCode::WrtStr:
+            return "WRT_STR";
+        case OpCode::End:
+            return "END";
+    }
+    return "?";
+}
+
+const char* opr_name(OprCode op) {
+    switch (op) {
+        case OprCode::Add:
+            return "ADD";
+        case OprCode::Sub:
+            return "SUB";
+        case OprCode::Mul:
+            return "MUL";
+        case OprCode::Div:
+            return "DIV";
+        case OprCode::Neg:
+            return "NEG";
+        case OprCode::Eql:
+            return "EQL";
+        case OprCode::Neq:
+            return "NEQ";
+        case OprCode::Lss:
+            return "LSS";
+        case OprCode::Geq:
+            return "GEQ";
+        case OprCode::Gre:
+            return "GRE";
+        case OprCode::Leq:
+            return "LEQ";
+        case OprCode::WrtInt:
+            return "WRT_INT";
+        case OprCode::WrtChar:
+            return "WRT_CHAR";
+        case OprCode::ReadInt:
+            return "READ_INT";
+        case OprCode::ReadChar:
+            return "READ_CHAR";
+        case OprCode::WrtNl:
+            return "WRT_NL";
+    }
+    return "?";
+}
+
+}  // namespace pcode
