@@ -71,6 +71,33 @@ pcode::Instruction end() {
     return instruction;
 }
 
+pcode::Instruction jmp(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Jmp;
+    instruction.operand = target;
+    return instruction;
+}
+
+pcode::Instruction jpc(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Jpc;
+    instruction.operand = target;
+    return instruction;
+}
+
+pcode::Instruction cal(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Cal;
+    instruction.operand = target;
+    return instruction;
+}
+
+pcode::Instruction ret() {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Ret;
+    return instruction;
+}
+
 std::string run(const std::vector<pcode::Instruction>& code,
                 const std::string& input, bool& ok, std::string& error) {
     std::istringstream in(input);
@@ -174,6 +201,47 @@ int main() {
     {
         run({lit(1), lit(0), opr(pcode::OprCode::Div), end()}, "", ok, error);
         check(!ok && !error.empty(), "除数为零时执行失败");
+    }
+    {
+        const std::string output =
+            run({lit(1), jmp(3), lit(2), opr(pcode::OprCode::WrtInt),
+                 opr(pcode::OprCode::WrtNl), end()},
+                "", ok, error);
+        check(ok && output == "1\n", "JMP 跳过指令正确");
+    }
+    {
+        const std::string output =
+            run({lit(0), jpc(4), lit(1), opr(pcode::OprCode::WrtInt),
+                 lit(2), opr(pcode::OprCode::WrtInt),
+                 opr(pcode::OprCode::WrtNl), end()},
+                "", ok, error);
+        check(ok && output == "2\n", "JPC 条件为假时跳转");
+    }
+    {
+        const std::string output =
+            run({lit(1), jpc(3), lit(2), opr(pcode::OprCode::WrtInt),
+                 opr(pcode::OprCode::WrtNl), end()},
+                "", ok, error);
+        check(ok && output == "2\n", "JPC 条件为真时不跳转");
+    }
+    {
+        const std::string output =
+            run({cal(4), opr(pcode::OprCode::WrtInt),
+                 opr(pcode::OprCode::WrtNl), end(), lit(7), ret()},
+                "", ok, error);
+        check(ok && output == "7\n", "CAL/RET 调用返回正确");
+    }
+    {
+        const std::string output =
+            run({lit(5), opr(pcode::OprCode::Pop), lit(6),
+                 opr(pcode::OprCode::WrtInt), opr(pcode::OprCode::WrtNl),
+                 end()},
+                "", ok, error);
+        check(ok && output == "6\n", "POP 丢弃栈顶正确");
+    }
+    {
+        run({ret()}, "", ok, error);
+        check(!ok && !error.empty(), "空返回栈执行 RET 失败");
     }
 
     if (failures == 0) {

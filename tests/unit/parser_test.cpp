@@ -7,6 +7,7 @@
 #include "common/diagnostic.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "pcode/interpreter.h"
 #include "pcode/pcode.h"
 
 namespace {
@@ -45,6 +46,18 @@ std::vector<pcode::Instruction> generate(const std::string& source,
     parser::Parser parser(lexer, &out, nullptr, false, &generator);
     parsed = parser.parse_program();
     return generator.instructions();
+}
+
+std::string run_generated(const std::string& source, const std::string& input,
+                          bool& ok) {
+    bool parsed = false;
+    const std::vector<pcode::Instruction> code = generate(source, parsed);
+    std::istringstream in(input);
+    std::ostringstream out;
+    pcode::Interpreter interpreter(code, in, out);
+    const bool ran = interpreter.run();
+    ok = parsed && ran;
+    return out.str();
 }
 
 bool has_error(const std::vector<common::Diagnostic>& diagnostics, char code,
@@ -2578,6 +2591,68 @@ int main() {
                   code[2].operand ==
                       static_cast<int>(pcode::OprCode::WrtNl),
               "字符常量写语句生成 LIT 97 / WRT_CHAR / WRT_NL");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int f(int x){\nreturn(x + 1);\n}\nvoid main(){\nprintf(f(2));\n}\n",
+            "", ok);
+        check(ok && output == "3\n", "函数调用与返回值执行正确");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "void main(){\nint x;\nx = 1;\nif (x > 0) {\nprintf(\"p\");\n} else {\nprintf(\"n\");\n}\n}\n",
+            "", ok);
+        check(ok && output == "p\n", "if/else 执行正确");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int i;\nvoid main(){\ni = 0;\nwhile (i < 3) {\ni = i + 1;\n}\nprintf(i);\n}\n",
+            "", ok);
+        check(ok && output == "3\n", "while 循环执行正确");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int i;\nint sum;\nvoid main(){\nsum = 0;\nfor (i = 0; i < 4; i = i + 1) {\nsum = sum + i;\n}\nprintf(sum);\n}\n",
+            "", ok);
+        check(ok && output == "6\n", "for 循环执行正确");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int x;\nvoid main(){\nx = 2;\nswitch (x) {\ncase 1:\nprintf(\"one\");\ncase 2:\nprintf(\"two\");\ndefault:\nprintf(\"other\");\n}\n}\n",
+            "", ok);
+        check(ok && output == "two\n", "switch 命中 case 且不贯穿");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int x;\nvoid main(){\nx = 9;\nswitch (x) {\ncase 1:\nprintf(\"one\");\ndefault:\nprintf(\"other\");\n}\n}\n",
+            "", ok);
+        check(ok && output == "other\n", "switch 走 default 分支");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "void p(){\nprintf(\"v\");\n}\nvoid main(){\np();\n}\n", "", ok);
+        check(ok && output == "v\n", "无返回值函数调用语句执行正确");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int f(){\nreturn(5);\n}\nvoid main(){\nf();\nprintf(\"ok\");\n}\n",
+            "", ok);
+        check(ok && output == "ok\n", "有返回值函数调用语句丢弃返回值");
+    }
+    {
+        bool ok = false;
+        const std::string output = run_generated(
+            "int f(int x){\nreturn(x * 2);\n}\nint g(int x){\nreturn(f(x) + 1);\n}\nvoid main(){\nprintf(g(3));\n}\n",
+            "", ok);
+        check(ok && output == "7\n", "嵌套函数调用执行正确");
     }
 
     if (failures == 0) {

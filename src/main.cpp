@@ -1,4 +1,5 @@
 // 编译器主程序（P1-1 骨架，P2-1 接入语法分析）
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -108,6 +109,27 @@ int main(int argc, char** argv) {
             false, &generator);
         if (!parser.parse_program() || errors.has_errors()) {
             return 1;
+        }
+
+        if (std::getenv("DUMP_PCODE") != nullptr) {
+            const std::vector<pcode::Instruction>& code =
+                generator.instructions();
+            for (std::size_t i = 0; i < code.size(); ++i) {
+                std::cerr << i << ": " << pcode::opcode_name(code[i].op);
+                if (code[i].op == pcode::OpCode::Opr) {
+                    std::cerr << ' '
+                              << pcode::opr_name(
+                                     static_cast<pcode::OprCode>(
+                                         code[i].operand));
+                } else if (code[i].op == pcode::OpCode::WrtStr) {
+                    std::cerr << " \"" << code[i].text << '"';
+                } else if (code[i].op != pcode::OpCode::Ldi &&
+                           code[i].op != pcode::OpCode::Sti &&
+                           code[i].op != pcode::OpCode::Ret) {
+                    std::cerr << ' ' << code[i].operand;
+                }
+                std::cerr << '\n';
+            }
         }
 
         std::ofstream result(kPcodeResultFile,

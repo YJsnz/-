@@ -18,6 +18,14 @@ const char* opcode_name(OpCode op) {
             return "LDI";
         case OpCode::Sti:
             return "STI";
+        case OpCode::Jmp:
+            return "JMP";
+        case OpCode::Jpc:
+            return "JPC";
+        case OpCode::Cal:
+            return "CAL";
+        case OpCode::Ret:
+            return "RET";
         case OpCode::End:
             return "END";
     }
@@ -58,6 +66,8 @@ const char* opr_name(OprCode op) {
             return "READ_CHAR";
         case OprCode::WrtNl:
             return "WRT_NL";
+        case OprCode::Pop:
+            return "POP";
     }
     return "?";
 }

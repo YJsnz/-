@@ -108,6 +108,7 @@ private:
     struct ParameterInfo {
         lexer::Token token;
         semantic::DataType type = semantic::DataType::Int;
+        int address = -1;
     };
 
     void fill_to(std::size_t k);
@@ -134,6 +135,12 @@ private:
     semantic::DataType last_call_return_type_ = semantic::DataType::Unknown;
     semantic::DataType last_constant_type_ = semantic::DataType::Unknown;
     semantic::DataType switch_expression_type_ = semantic::DataType::Unknown;
+    std::map<std::string, int> function_entries_;  // 函数入口指令下标
+    const semantic::Symbol* active_call_symbol_ = nullptr;
+    int pending_address_ = -1;
+    int switch_temp_address_ = -1;
+    std::vector<int> switch_end_jumps_;
+    bool in_main_ = false;
     lexer::Token last_declarator_token_;
     std::vector<ParameterInfo> last_parameters_;
     std::vector<semantic::DataType> last_argument_types_;

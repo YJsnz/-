@@ -22,12 +22,14 @@ private:
     long long pop();
     void push(long long value);
     bool address_ok(long long address) const;
+    bool jump_ok(long long target) const;
 
     std::vector<Instruction> code_;
     std::istream& in_;
     std::ostream& out_;
     std::vector<long long> memory_;
     std::vector<long long> stack_;
+    std::vector<int> call_stack_;
     std::string error_;
 };
 

@@ -29,8 +29,17 @@ bool Interpreter::address_ok(long long address) const {
     return address >= 0 && address < static_cast<long long>(memory_.size());
 }
 
+bool Interpreter::jump_ok(long long target) const {
+    return target >= 0 && target < static_cast<long long>(code_.size());
+}
+
 bool Interpreter::run() {
-    for (const Instruction& instruction : code_) {
+    std::size_t pc = 0;
+    while (pc < code_.size()) {
+        const Instruction& instruction = code_[pc];
+        bool advance_pc = true;
+
+
         switch (instruction.op) {
             case OpCode::Lit:
                 push(instruction.operand);
@@ -150,6 +159,9 @@ bool Interpreter::run() {
                     case OprCode::WrtNl:
                         out_ << '\n';
                         break;
+                    case OprCode::Pop:
+                        pop();
+                        break;
                 }
                 if (!error_.empty()) {
                     return false;
@@ -184,8 +196,53 @@ bool Interpreter::run() {
                 memory_[static_cast<std::size_t>(address)] = value;
                 break;
             }
+            case OpCode::Jmp:
+                if (!jump_ok(instruction.operand)) {
+                    error_ = "跳转地址越界";
+                    return false;
+                }
+                pc = static_cast<std::size_t>(instruction.operand);
+                advance_pc = false;
+                break;
+            case OpCode::Jpc: {
+                const long long condition = pop();
+                if (!error_.empty()) {
+                    return false;
+                }
+                if (condition == 0) {
+                    if (!jump_ok(instruction.operand)) {
+                        error_ = "条件跳转地址越界";
+                        return false;
+                    }
+                    pc = static_cast<std::size_t>(instruction.operand);
+                    advance_pc = false;
+                }
+                break;
+            }
+            case OpCode::Cal:
+                if (!jump_ok(instruction.operand)) {
+                    error_ = "调用地址越界";
+                    return false;
+                }
+                call_stack_.push_back(static_cast<int>(pc + 1));
+                pc = static_cast<std::size_t>(instruction.operand);
+                advance_pc = false;
+                break;
+            case OpCode::Ret:
+                if (call_stack_.empty()) {
+                    error_ = "返回栈为空";
+                    return false;
+                }
+                pc = static_cast<std::size_t>(call_stack_.back());
+                call_stack_.pop_back();
+                advance_pc = false;
+                break;
             case OpCode::End:
                 return true;
+        }
+
+        if (advance_pc) {
+            ++pc;
         }
     }
     return true;

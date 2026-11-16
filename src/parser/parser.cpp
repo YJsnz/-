@@ -100,7 +100,12 @@ void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
         symbol.int_value = pending_int_value;
         symbol.char_value = pending_char_value;
     } else if (kind == semantic::SymbolKind::Variable) {
-        symbol.address = allocate_cells(1);
+        if (pending_address_ >= 0) {
+            symbol.address = pending_address_;
+            pending_address_ = -1;
+        } else {
+            symbol.address = allocate_cells(1);
+        }
     } else if (kind == semantic::SymbolKind::Array) {
         int cells = 1;
         for (long long size : last_dimensions_) {
@@ -1014,6 +1019,14 @@ bool Parser::parse_return_statement() {
         }
     }
 
+    if (generator_ != nullptr) {
+        if (in_main_) {
+            generator_->emit_end();
+        } else if (!function_returns_value || has_expression) {
+            generator_->emit_ret();
+        }
+    }
+
     marker("返回语句");
     return ok_;
 }
@@ -1051,12 +1064,19 @@ bool Parser::parse_function_definition() {
         for (const ParameterInfo& parameter : last_parameters_) {
             function.parameter_types.push_back(parameter.type);
         }
-        if (recovery_ && !symbols_.insert(function)) {
+        if (semantic_) {
+            for (ParameterInfo& parameter : last_parameters_) {
+                parameter.address = allocate_cells(1);
+                function.parameter_addresses.push_back(parameter.address);
+            }
+        }
+        if (semantic_ && !symbols_.insert(function)) {
             syntax_error('b', name_token, "名字重定义：" + name_token.value);
         }
 
         symbols_.enter_scope();
         for (const ParameterInfo& parameter : last_parameters_) {
+            pending_address_ = parameter.address;
             define_symbol(parameter.token.value, semantic::SymbolKind::Variable,
                           parameter.type, 0, parameter.token);
         }
@@ -1067,11 +1087,21 @@ bool Parser::parse_function_definition() {
         }
         const semantic::DataType saved_return_type = current_return_type_;
         current_return_type_ = semantic::DataType::Void;
+        int function_jump = -1;
+        if (generator_ != nullptr) {
+            function_jump = generator_->position();
+            generator_->emit_jmp(0);
+            function_entries_[name] = generator_->position();
+        }
         const bool body_ok = parse_compound_statement_body();
         current_return_type_ = saved_return_type;
         symbols_.leave_scope();
         if (!body_ok) {
             return false;
+        }
+        if (generator_ != nullptr) {
+            generator_->emit_ret();
+            generator_->patch(function_jump, generator_->position());
         }
         marker("无返回值函数定义");
         return ok_;
@@ -1098,12 +1128,19 @@ bool Parser::parse_function_definition() {
     for (const ParameterInfo& parameter : last_parameters_) {
         function.parameter_types.push_back(parameter.type);
     }
-    if (recovery_ && !symbols_.insert(function)) {
+    if (semantic_) {
+        for (ParameterInfo& parameter : last_parameters_) {
+            parameter.address = allocate_cells(1);
+            function.parameter_addresses.push_back(parameter.address);
+        }
+    }
+    if (semantic_ && !symbols_.insert(function)) {
         syntax_error('b', name_token, "名字重定义：" + name_token.value);
     }
 
     symbols_.enter_scope();
     for (const ParameterInfo& parameter : last_parameters_) {
+        pending_address_ = parameter.address;
         define_symbol(parameter.token.value, semantic::SymbolKind::Variable,
                       parameter.type, 0, parameter.token);
     }
@@ -1116,6 +1153,12 @@ bool Parser::parse_function_definition() {
     const bool saved_has_return = current_function_has_return_;
     current_return_type_ = return_type;
     current_function_has_return_ = false;
+    int function_jump = -1;
+    if (generator_ != nullptr) {
+        function_jump = generator_->position();
+        generator_->emit_jmp(0);
+        function_entries_[name] = generator_->position();
+    }
     const bool body_ok = parse_compound_statement_body();
     if (recovery_ && body_ok && return_type != semantic::DataType::Void &&
         !current_function_has_return_) {
@@ -1126,6 +1169,10 @@ bool Parser::parse_function_definition() {
     symbols_.leave_scope();
     if (!body_ok) {
         return false;
+    }
+    if (generator_ != nullptr) {
+        generator_->emit_ret();
+        generator_->patch(function_jump, generator_->position());
     }
     marker("有返回值函数定义");
     return ok_;
@@ -1152,7 +1199,10 @@ bool Parser::parse_main_function() {
     symbols_.enter_scope();
     const semantic::DataType saved_return_type = current_return_type_;
     current_return_type_ = semantic::DataType::Void;
+    const bool saved_in_main = in_main_;
+    in_main_ = true;
     const bool body_ok = parse_compound_statement_body();
+    in_main_ = saved_in_main;
     current_return_type_ = saved_return_type;
     symbols_.leave_scope();
     if (!body_ok) {
@@ -1359,18 +1409,30 @@ bool Parser::parse_factor() {
 bool Parser::parse_value_parameter_list() {
     last_argument_count_ = 0;
     last_argument_types_.clear();
+    auto store_argument = [this]() {
+        if (generator_ != nullptr && active_call_symbol_ != nullptr) {
+            const std::size_t index =
+                static_cast<std::size_t>(last_argument_count_ - 1);
+            if (index < active_call_symbol_->parameter_addresses.size()) {
+                generator_->emit_sto(
+                    active_call_symbol_->parameter_addresses[index]);
+            }
+        }
+    };
     if (current().kind != lexer::TokenKind::RParen) {
         if (!parse_expression()) {
             return false;
         }
         ++last_argument_count_;
         last_argument_types_.push_back(last_expression_type_);
+        store_argument();
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_expression()) {
                 return false;
             }
             ++last_argument_count_;
             last_argument_types_.push_back(last_expression_type_);
+            store_argument();
         }
     }
 
@@ -1389,7 +1451,10 @@ bool Parser::parse_function_call() {
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
-    if (!parse_value_parameter_list()) {
+    active_call_symbol_ = symbol;
+    const bool arguments_ok = parse_value_parameter_list();
+    active_call_symbol_ = nullptr;
+    if (!arguments_ok) {
         return false;
     }
     if (recovery_ && symbol != nullptr) {
@@ -1414,6 +1479,13 @@ bool Parser::parse_function_call() {
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
+    }
+
+    if (generator_ != nullptr && symbol != nullptr) {
+        const auto entry = function_entries_.find(to_lower_ascii(symbol->name));
+        if (entry != function_entries_.end()) {
+            generator_->emit_cal(entry->second);
+        }
     }
 
     marker("有返回值函数调用语句");
@@ -1429,7 +1501,10 @@ bool Parser::parse_call_statement(bool returns_value) {
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
-    if (!parse_value_parameter_list()) {
+    active_call_symbol_ = symbol;
+    const bool arguments_ok = parse_value_parameter_list();
+    active_call_symbol_ = nullptr;
+    if (!arguments_ok) {
         return false;
     }
     if (recovery_ && symbol != nullptr) {
@@ -1454,6 +1529,16 @@ bool Parser::parse_call_statement(bool returns_value) {
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
+    }
+
+    if (generator_ != nullptr && symbol != nullptr) {
+        const auto entry = function_entries_.find(to_lower_ascii(symbol->name));
+        if (entry != function_entries_.end()) {
+            generator_->emit_cal(entry->second);
+            if (returns_value) {
+                generator_->emit_opr(pcode::OprCode::Pop);
+            }
+        }
     }
 
     marker(returns_value ? "有返回值函数调用语句" : "无返回值函数调用语句");
@@ -1471,10 +1556,34 @@ bool Parser::parse_conditional_statement() {
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
+
+    const int condition_jump =
+        generator_ != nullptr ? generator_->position() : -1;
+    if (generator_ != nullptr) {
+        generator_->emit_jpc(0);
+    }
+
     if (!parse_statement()) {
         return false;
     }
-    if (ok_ && match(lexer::TokenKind::KeywordElse)) {
+
+    const bool has_else =
+        ok_ && current().kind == lexer::TokenKind::KeywordElse;
+    if (generator_ != nullptr) {
+        if (has_else) {
+            const int end_jump = generator_->position();
+            generator_->emit_jmp(0);
+            generator_->patch(condition_jump, generator_->position());
+            advance();  // else
+            if (!parse_statement()) {
+                return false;
+            }
+            generator_->patch(end_jump, generator_->position());
+        } else {
+            generator_->patch(condition_jump, generator_->position());
+        }
+    } else if (has_else) {
+        advance();  // else
         if (!parse_statement()) {
             return false;
         }
@@ -1511,6 +1620,33 @@ bool Parser::parse_condition() {
         syntax_error('f', operator_token, "条件判断中的表达式只能为整型");
     }
 
+    if (generator_ != nullptr) {
+        pcode::OprCode comparison = pcode::OprCode::Eql;
+        switch (kind) {
+            case lexer::TokenKind::Less:
+                comparison = pcode::OprCode::Lss;
+                break;
+            case lexer::TokenKind::LessEqual:
+                comparison = pcode::OprCode::Leq;
+                break;
+            case lexer::TokenKind::Greater:
+                comparison = pcode::OprCode::Gre;
+                break;
+            case lexer::TokenKind::GreaterEqual:
+                comparison = pcode::OprCode::Geq;
+                break;
+            case lexer::TokenKind::Equal:
+                comparison = pcode::OprCode::Eql;
+                break;
+            case lexer::TokenKind::NotEqual:
+                comparison = pcode::OprCode::Neq;
+                break;
+            default:
+                break;
+        }
+        generator_->emit_opr(comparison);
+    }
+
     marker("条件");
     return ok_;
 }
@@ -1531,14 +1667,25 @@ bool Parser::parse_while_statement() {
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
+    const int loop_start =
+        generator_ != nullptr ? generator_->position() : -1;
     if (!parse_condition()) {
         return false;
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
+    const int exit_jump =
+        generator_ != nullptr ? generator_->position() : -1;
+    if (generator_ != nullptr) {
+        generator_->emit_jpc(0);
+    }
     if (!parse_statement()) {
         return false;
+    }
+    if (generator_ != nullptr) {
+        generator_->emit_jmp(loop_start);
+        generator_->patch(exit_jump, generator_->position());
     }
 
     marker("循环语句");
@@ -1552,52 +1699,104 @@ bool Parser::parse_for_statement() {
     }
 
     // 初始化：标识符 = 表达式
+    const lexer::Token init_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    const semantic::Symbol* init_symbol = lookup_or_report(init_token);
     if (!expect(lexer::TokenKind::Assign, "=")) {
         return false;
     }
     if (!parse_expression()) {
         return false;
     }
+    if (generator_ != nullptr && init_symbol != nullptr &&
+        init_symbol->kind == semantic::SymbolKind::Variable) {
+        generator_->emit_sto(init_symbol->address);
+    }
     if (!expect(lexer::TokenKind::Semicolon, "分号")) {
         return false;
     }
 
     // 条件
+    const int loop_start =
+        generator_ != nullptr ? generator_->position() : -1;
     if (!parse_condition()) {
         return false;
     }
     if (!expect(lexer::TokenKind::Semicolon, "分号")) {
         return false;
     }
+    const int exit_jump =
+        generator_ != nullptr ? generator_->position() : -1;
+    if (generator_ != nullptr) {
+        generator_->emit_jpc(0);
+    }
 
     // 步长更新：标识符 = 标识符 (+|-) 步长
+    const lexer::Token target_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    const semantic::Symbol* target_symbol = lookup_or_report(target_token);
     if (!expect(lexer::TokenKind::Assign, "=")) {
         return false;
     }
+    const lexer::Token source_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    const semantic::Symbol* source_symbol = lookup_or_report(source_token);
     if (current().kind != lexer::TokenKind::Plus &&
         current().kind != lexer::TokenKind::Minus) {
         syntax_error(current(), "期望 + 或 -");
         return false;
     }
+    const lexer::TokenKind step_operator = current().kind;
     advance();
+
+    const int step_code_start =
+        generator_ != nullptr ? generator_->position() : -1;
+    if (generator_ != nullptr && source_symbol != nullptr) {
+        if (source_symbol->kind == semantic::SymbolKind::Constant) {
+            generator_->emit_lit(
+                source_symbol->type == semantic::DataType::Char
+                    ? static_cast<unsigned char>(source_symbol->char_value)
+                    : source_symbol->int_value);
+        } else if (source_symbol->kind == semantic::SymbolKind::Variable) {
+            generator_->emit_lod(source_symbol->address);
+        }
+    }
     if (!parse_step()) {
         return false;
+    }
+    if (generator_ != nullptr) {
+        generator_->emit_opr(step_operator == lexer::TokenKind::Plus
+                                 ? pcode::OprCode::Add
+                                 : pcode::OprCode::Sub);
+        if (target_symbol != nullptr &&
+            target_symbol->kind == semantic::SymbolKind::Variable) {
+            generator_->emit_sto(target_symbol->address);
+        }
     }
 
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
+
+    std::vector<pcode::Instruction> step_code;
+    if (generator_ != nullptr) {
+        step_code = generator_->take_from(step_code_start);
+    }
+
     if (!parse_statement()) {
         return false;
+    }
+
+    if (generator_ != nullptr) {
+        generator_->append(step_code);
+        generator_->emit_jmp(loop_start);
+        generator_->patch(exit_jump, generator_->position());
     }
 
     marker("循环语句");
@@ -1605,7 +1804,29 @@ bool Parser::parse_for_statement() {
 }
 
 bool Parser::parse_step() {
-    if (!parse_unsigned_integer()) {
+    if (current().kind == lexer::TokenKind::IntConstant) {
+        if (!parse_unsigned_integer()) {
+            return false;
+        }
+        if (generator_ != nullptr) {
+            generator_->emit_lit(last_unsigned_value_);
+        }
+    } else if (current().kind == lexer::TokenKind::Identifier) {
+        const lexer::Token name_token = current();
+        advance();
+        const semantic::Symbol* symbol = lookup_or_report(name_token);
+        if (generator_ != nullptr && symbol != nullptr) {
+            if (symbol->kind == semantic::SymbolKind::Constant) {
+                generator_->emit_lit(symbol->type == semantic::DataType::Char
+                                         ? static_cast<unsigned char>(
+                                               symbol->char_value)
+                                         : symbol->int_value);
+            } else if (symbol->kind == semantic::SymbolKind::Variable) {
+                generator_->emit_lod(symbol->address);
+            }
+        }
+    } else {
+        syntax_error(current(), "期望步长");
         return false;
     }
     marker("步长");
@@ -1621,6 +1842,13 @@ bool Parser::parse_switch_statement() {
         return false;
     }
     const semantic::DataType switch_type = last_expression_type_;
+    const int saved_switch_temp = switch_temp_address_;
+    std::vector<int> saved_switch_jumps;
+    if (generator_ != nullptr) {
+        switch_temp_address_ = allocate_cells(1);
+        generator_->emit_sto(switch_temp_address_);
+        saved_switch_jumps.swap(switch_end_jumps_);
+    }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
@@ -1650,6 +1878,15 @@ bool Parser::parse_switch_statement() {
 
     if (!expect(lexer::TokenKind::RBrace, "右花括号 }")) {
         return false;
+    }
+
+    if (generator_ != nullptr) {
+        for (int index : switch_end_jumps_) {
+            generator_->patch(index, generator_->position());
+        }
+        switch_end_jumps_.clear();
+        switch_end_jumps_.swap(saved_switch_jumps);
+        switch_temp_address_ = saved_switch_temp;
     }
 
     marker("情况语句");
@@ -1683,11 +1920,32 @@ bool Parser::parse_case_clause() {
         last_constant_type_ != switch_expression_type_) {
         syntax_error('o', case_token, "case 常量类型与 switch 表达式不一致");
     }
+
+    int next_case_jump = -1;
+    if (generator_ != nullptr && switch_temp_address_ >= 0) {
+        generator_->emit_lod(switch_temp_address_);
+        if (last_constant_type_ == semantic::DataType::Char) {
+            generator_->emit_lit(
+                static_cast<unsigned char>(last_char_value_));
+        } else {
+            generator_->emit_lit(last_integer_value_);
+        }
+        generator_->emit_opr(pcode::OprCode::Eql);
+        next_case_jump = generator_->position();
+        generator_->emit_jpc(0);
+    }
+
     if (!expect(lexer::TokenKind::Colon, "冒号 :")) {
         return false;
     }
     if (!parse_statement()) {
         return false;
+    }
+
+    if (generator_ != nullptr && switch_temp_address_ >= 0) {
+        switch_end_jumps_.push_back(generator_->position());
+        generator_->emit_jmp(0);
+        generator_->patch(next_case_jump, generator_->position());
     }
 
     marker("情况子语句");

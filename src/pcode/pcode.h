@@ -13,6 +13,10 @@ enum class OpCode {
     WrtStr,   // 输出字符串
     Ldi,      // 间接取数：弹出地址，压入 mem[地址]
     Sti,      // 间接存数：弹出值、地址，写入 mem[地址]
+    Jmp,      // 无条件跳转到指令下标
+    Jpc,      // 弹出条件，为 0 时跳转
+    Cal,      // 调用函数：返回地址入调用栈，跳转到入口
+    Ret,      // 函数返回：弹出调用栈中的返回地址
     End,      // 结束
 };
 
@@ -33,6 +37,7 @@ enum class OprCode {
     ReadInt,
     ReadChar,
     WrtNl,
+    Pop,
 };
 
 struct Instruction {

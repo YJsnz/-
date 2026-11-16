@@ -31,6 +31,7 @@ struct Symbol {
     long long int_value = 0;  // 常量整数值
     char char_value = 0;      // 常量字符值
     std::vector<DataType> parameter_types;  // 函数参数类型
+    std::vector<int> parameter_addresses;   // 函数参数地址
     int address = -1;                        // 变量/数组起始地址
     std::vector<long long> dimension_sizes;  // 数组各维大小（行优先）
 };

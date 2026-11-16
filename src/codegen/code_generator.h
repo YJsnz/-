@@ -18,7 +18,16 @@ public:
     void emit_wrt_str(const std::string& text);
     void emit_ldi();
     void emit_sti();
+    void emit_jmp(int target);
+    void emit_jpc(int target);
+    void emit_cal(int target);
+    void emit_ret();
     void emit_end();
+
+    int position() const { return static_cast<int>(code_.size()); }
+    void patch(int index, long long operand);
+    void append(const std::vector<pcode::Instruction>& instructions);
+    std::vector<pcode::Instruction> take_from(int index);
 
     const std::vector<pcode::Instruction>& instructions() const { return code_; }
     void clear();

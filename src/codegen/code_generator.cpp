@@ -53,6 +53,54 @@ void CodeGenerator::emit_sti() {
     code_.push_back(instruction);
 }
 
+void CodeGenerator::emit_jmp(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Jmp;
+    instruction.operand = target;
+    code_.push_back(instruction);
+}
+
+void CodeGenerator::emit_jpc(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Jpc;
+    instruction.operand = target;
+    code_.push_back(instruction);
+}
+
+void CodeGenerator::emit_cal(int target) {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Cal;
+    instruction.operand = target;
+    code_.push_back(instruction);
+}
+
+void CodeGenerator::emit_ret() {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Ret;
+    code_.push_back(instruction);
+}
+
+void CodeGenerator::patch(int index, long long operand) {
+    if (index >= 0 && index < static_cast<int>(code_.size())) {
+        code_[static_cast<std::size_t>(index)].operand = operand;
+    }
+}
+
+void CodeGenerator::append(
+    const std::vector<pcode::Instruction>& instructions) {
+    code_.insert(code_.end(), instructions.begin(), instructions.end());
+}
+
+std::vector<pcode::Instruction> CodeGenerator::take_from(int index) {
+    std::vector<pcode::Instruction> taken;
+    if (index < 0 || index > static_cast<int>(code_.size())) {
+        return taken;
+    }
+    taken.assign(code_.begin() + index, code_.end());
+    code_.erase(code_.begin() + index, code_.end());
+    return taken;
+}
+
 void CodeGenerator::emit_end() {
     pcode::Instruction instruction;
     instruction.op = pcode::OpCode::End;

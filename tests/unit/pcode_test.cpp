@@ -30,6 +30,10 @@ int main() {
           "WRT_STR 名称");
     check(std::string(pcode::opcode_name(OpCode::Ldi)) == "LDI", "LDI 名称");
     check(std::string(pcode::opcode_name(OpCode::Sti)) == "STI", "STI 名称");
+    check(std::string(pcode::opcode_name(OpCode::Jmp)) == "JMP", "JMP 名称");
+    check(std::string(pcode::opcode_name(OpCode::Jpc)) == "JPC", "JPC 名称");
+    check(std::string(pcode::opcode_name(OpCode::Cal)) == "CAL", "CAL 名称");
+    check(std::string(pcode::opcode_name(OpCode::Ret)) == "RET", "RET 名称");
     check(std::string(pcode::opcode_name(OpCode::End)) == "END", "END 名称");
 
     check(std::string(pcode::opr_name(OprCode::Add)) == "ADD", "ADD 名称");
@@ -53,9 +57,11 @@ int main() {
           "READ_CHAR 名称");
     check(std::string(pcode::opr_name(OprCode::WrtNl)) == "WRT_NL",
           "WRT_NL 名称");
+    check(std::string(pcode::opr_name(OprCode::Pop)) == "POP", "POP 名称");
 
     check(static_cast<int>(OprCode::Add) == 1, "ADD 编码为 1");
     check(static_cast<int>(OprCode::WrtNl) == 16, "WRT_NL 编码为 16");
+    check(static_cast<int>(OprCode::Pop) == 17, "POP 编码为 17");
 
     pcode::Instruction instruction;
     check(instruction.op == OpCode::End && instruction.operand == 0 &&
