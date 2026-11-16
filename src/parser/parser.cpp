@@ -57,6 +57,9 @@ const lexer::Token& Parser::peek_token(std::size_t k) {
 void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
                            semantic::DataType type, int dimensions,
                            const lexer::Token& where) {
+    if (!recovery_) {
+        return;  // 非检查模式不做语义记录
+    }
     semantic::Symbol symbol;
     symbol.name = name;
     symbol.kind = kind;
@@ -65,6 +68,23 @@ void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
     if (!symbols_.insert(symbol)) {
         syntax_error('b', where, "名字重定义：" + name);
     }
+}
+
+const semantic::Symbol* Parser::lookup_or_report(const lexer::Token& token,
+                                                 bool require_function) {
+    if (!recovery_) {
+        return nullptr;  // 非检查模式不做语义检查
+    }
+    const semantic::Symbol* symbol = symbols_.lookup(token.value);
+    if (symbol == nullptr) {
+        syntax_error('c', token, "未定义的名字：" + token.value);
+        return nullptr;
+    }
+    if (require_function && symbol->kind != semantic::SymbolKind::Function) {
+        syntax_error('c', token, "名字不是函数：" + token.value);
+        return nullptr;
+    }
+    return symbol;
 }
 
 bool Parser::parse_program() {
@@ -647,9 +667,11 @@ bool Parser::parse_statement() {
 }
 
 bool Parser::parse_assignment_statement() {
+    const lexer::Token name_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    (void)lookup_or_report(name_token);
 
     if (ok_ && match(lexer::TokenKind::LBracket)) {
         if (!parse_expression()) {
@@ -684,9 +706,11 @@ bool Parser::parse_read_statement() {
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
+    const lexer::Token name_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    (void)lookup_or_report(name_token);
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
@@ -771,7 +795,7 @@ bool Parser::parse_function_definition() {
         for (const ParameterInfo& parameter : last_parameters_) {
             function.parameter_types.push_back(parameter.type);
         }
-        if (!symbols_.insert(function)) {
+        if (recovery_ && !symbols_.insert(function)) {
             syntax_error('b', name_token, "名字重定义：" + name_token.value);
         }
 
@@ -815,7 +839,7 @@ bool Parser::parse_function_definition() {
     for (const ParameterInfo& parameter : last_parameters_) {
         function.parameter_types.push_back(parameter.type);
     }
-    if (!symbols_.insert(function)) {
+    if (recovery_ && !symbols_.insert(function)) {
         syntax_error('b', name_token, "名字重定义：" + name_token.value);
     }
 
@@ -910,9 +934,11 @@ bool Parser::parse_factor() {
         peek_token(1).kind == lexer::TokenKind::LParen) {
         ok = parse_function_call();
     } else if (current().kind == lexer::TokenKind::Identifier) {
+        const lexer::Token name_token = current();
         if (!advance()) {
             return false;
         }
+        (void)lookup_or_report(name_token);
         if (ok_ && current().kind == lexer::TokenKind::LBracket) {
             advance();
             if (!parse_expression()) {
@@ -983,9 +1009,11 @@ bool Parser::parse_value_parameter_list() {
 }
 
 bool Parser::parse_function_call() {
+    const lexer::Token name_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    (void)lookup_or_report(name_token, true);
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
@@ -1001,9 +1029,11 @@ bool Parser::parse_function_call() {
 }
 
 bool Parser::parse_call_statement(bool returns_value) {
+    const lexer::Token name_token = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
+    (void)lookup_or_report(name_token, true);
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }

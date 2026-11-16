@@ -1142,6 +1142,140 @@ int main() {
         }
         check(found, "同名函数报 b");
     }
+    {
+        lexer::Lexer lexer("void main(){\nx = 1;\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "未定义变量程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "未定义赋值目标报 c");
+    }
+    {
+        lexer::Lexer lexer("void main(){\nint x;\nx = y;\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "未定义右值程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 3) {
+                found = true;
+            }
+        }
+        check(found, "表达式中未定义名字报 c");
+    }
+    {
+        lexer::Lexer lexer("void main(){\nprintf(x);\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "未定义写参数程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "printf 参数未定义报 c");
+    }
+    {
+        lexer::Lexer lexer("void main(){\nscanf(x);\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "未定义读参数程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "scanf 参数未定义报 c");
+    }
+    {
+        lexer::Lexer lexer("void main(){\nf(1);\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "未定义函数调用程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "未定义函数调用报 c");
+    }
+    {
+        lexer::Lexer lexer("void main(){\nx = 1;\nint x;\n}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "先用后声明程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c' && d.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "先用后声明报 c");
+    }
+    {
+        lexer::Lexer lexer(
+            "int x;\n"
+            "int f(){ return(1); }\n"
+            "void main(){\n"
+            "x = 1;\n"
+            "printf(x);\n"
+            "scanf(x);\n"
+            "f();\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "已定义名字程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'c') {
+                found = true;
+            }
+        }
+        check(!found, "已定义名字不报 c");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

@@ -105,6 +105,8 @@ private:
     void define_symbol(const std::string& name, semantic::SymbolKind kind,
                        semantic::DataType type, int dimensions,
                        const lexer::Token& where);
+    const semantic::Symbol* lookup_or_report(const lexer::Token& token,
+                                             bool require_function = false);
 
     lexer::Lexer& lexer_;
     std::ostream* out_;
