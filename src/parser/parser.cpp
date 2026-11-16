@@ -19,10 +19,11 @@ std::string to_lower_ascii(const std::string& text) {
 
 }  // namespace
 
-Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_error)
-    : lexer_(lexer), out_(out), on_error_(std::move(on_error)) {
+Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_error,
+               bool recovery)
+    : lexer_(lexer), out_(out), on_error_(std::move(on_error)), recovery_(recovery) {
     fill_to(0);
-    if (current().kind == lexer::TokenKind::Error) {
+    if (!recovery_ && current().kind == lexer::TokenKind::Error) {
         ok_ = false;  // 词法错误已由 Lexer 回调上报
     }
 }
@@ -31,7 +32,12 @@ void Parser::fill_to(std::size_t k) {
     while (lookahead_.size() <= k && !eof_) {
         lexer::Token token = lexer_.next_token();
         if (token.kind == lexer::TokenKind::Error) {
-            ok_ = false;  // 词法错误已由 Lexer 回调上报
+            if (!recovery_) {
+                ok_ = false;
+                lookahead_.push_back(token);
+            }
+            // 恢复模式：词法错误已由 Lexer 回调上报，丢弃该单元继续读取。
+            continue;
         }
         if (token.kind == lexer::TokenKind::End) {
             eof_ = true;
@@ -64,7 +70,12 @@ bool Parser::parse_program() {
     marker("程序");
     if (ok_ && !at_end()) {
         syntax_error(current(), "主函数之后存在多余内容");
-        return false;
+        if (!recovery_) {
+            return false;
+        }
+        while (ok_ && !at_end()) {
+            advance();
+        }
     }
     return ok_;
 }
@@ -78,6 +89,8 @@ bool Parser::advance() {
     if (out_ != nullptr) {
         *out_ << lexer::token_code(token.kind) << ' ' << token.lexeme << '\n';
     }
+    previous_ = token;
+    has_previous_ = true;
     lookahead_.pop_front();
     fill_to(0);
 
@@ -99,8 +112,22 @@ bool Parser::expect(lexer::TokenKind kind, const std::string& context) {
     if (match(kind)) {
         return true;
     }
-    syntax_error(current(), "期望" + context);
-    return false;
+    const lexer::Token& where = has_previous_ ? previous_ : current();
+    syntax_error(error_code_for(kind), where, "期望" + context);
+    return recovery_;
+}
+
+char Parser::error_code_for(lexer::TokenKind expected) const {
+    switch (expected) {
+        case lexer::TokenKind::Semicolon:
+            return 'k';
+        case lexer::TokenKind::RParen:
+            return 'l';
+        case lexer::TokenKind::RBracket:
+            return 'm';
+        default:
+            return 'a';  // 未分类的语法错误暂记为 a
+    }
 }
 
 void Parser::marker(const std::string& name) {
@@ -110,17 +137,39 @@ void Parser::marker(const std::string& name) {
 }
 
 void Parser::syntax_error(const lexer::Token& token, const std::string& message) {
-    if (!ok_) {
-        return;
+    syntax_error('a', token, message);
+}
+
+void Parser::syntax_error(char code, const lexer::Token& token,
+                          const std::string& message) {
+    if (recovery_) {
+        // 同一位置重复报错：强制前进，避免死循环。
+        if (has_last_error_ && last_error_line_ == token.line &&
+            last_error_column_ == token.column) {
+            if (current().kind != lexer::TokenKind::End) {
+                advance();
+            }
+            return;
+        }
+        had_error_ = true;
+        has_last_error_ = true;
+        last_error_line_ = token.line;
+        last_error_column_ = token.column;
+    } else {
+        if (!ok_) {
+            return;
+        }
+        ok_ = false;
+        had_error_ = true;
     }
-    ok_ = false;
+
     if (!on_error_) {
         return;
     }
     common::Diagnostic diagnostic;
     diagnostic.line = token.line;
     diagnostic.column = token.column;
-    diagnostic.code = '\0';  // 语法错误：实验三再分配类别码
+    diagnostic.code = code;
     diagnostic.message = message;
     on_error_(diagnostic);
 }
@@ -178,7 +227,10 @@ bool Parser::parse_constant_definition() {
     }
 
     syntax_error(current(), "期望 int 或 char");
-    return false;
+    if (recovery_ && current().kind != lexer::TokenKind::End) {
+        advance();
+    }
+    return recovery_;
 }
 
 bool Parser::parse_integer() {
@@ -547,8 +599,11 @@ bool Parser::parse_statement() {
         return ok_;
     }
 
-    syntax_error(current(), "暂不支持的语句（控制语句将在 P2-9～P2-11 实现）");
-    return false;
+    syntax_error('a', current(), "无法识别的语句");
+    if (recovery_ && current().kind != lexer::TokenKind::End) {
+        advance();
+    }
+    return recovery_;
 }
 
 bool Parser::parse_assignment_statement() {
@@ -702,7 +757,7 @@ bool Parser::parse_main_function() {
     if (current().kind != lexer::TokenKind::KeywordVoid ||
         peek_token(1).kind != lexer::TokenKind::KeywordMain) {
         syntax_error(current(), "期望主函数 void main()");
-        return false;
+        return recovery_;
     }
 
     advance();  // void
@@ -802,7 +857,10 @@ bool Parser::parse_factor() {
         ok = expect(lexer::TokenKind::RParen, "右小括号 )");
     } else {
         syntax_error(current(), "期望因子");
-        return false;
+        if (recovery_ && current().kind != lexer::TokenKind::End) {
+            advance();
+        }
+        return recovery_;
     }
 
     if (!ok) {

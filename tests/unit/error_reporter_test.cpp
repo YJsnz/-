@@ -46,6 +46,34 @@ int main() {
     check(!reporter.has_errors(), "clear 后无错误");
     check(reporter.diagnostics().empty(), "clear 后列表为空");
 
+    {
+        common::ErrorReporter sorted_reporter;
+        common::Diagnostic first;
+        first.line = 5;
+        first.code = 'c';
+        sorted_reporter.report(first);
+        common::Diagnostic second;
+        second.line = 2;
+        second.code = 'b';
+        sorted_reporter.report(second);
+        common::Diagnostic third;
+        third.line = 2;
+        third.code = 'd';
+        sorted_reporter.report(third);
+        common::Diagnostic fourth;
+        fourth.line = 3;
+        fourth.code = 'k';
+        sorted_reporter.report(fourth);
+
+        const std::vector<common::Diagnostic> sorted =
+            sorted_reporter.sorted_unique_by_line();
+        check(sorted.size() == 3, "按行去重后保留 3 条");
+        check(sorted.size() == 3 && sorted[0].line == 2 && sorted[0].code == 'b',
+              "同行保留首个错误");
+        check(sorted.size() == 3 && sorted[1].line == 3 && sorted[2].line == 5,
+              "错误按行号升序排列");
+    }
+
     if (failures == 0) {
         std::cout << "全部通过\n";
         return 0;

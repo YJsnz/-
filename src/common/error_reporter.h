@@ -19,6 +19,9 @@ public:
     bool has_errors() const { return !diagnostics_.empty(); }
     void clear();
 
+    // 按行号排序并按行去重（每行保留首个错误）。
+    std::vector<Diagnostic> sorted_unique_by_line() const;
+
 private:
     std::vector<Diagnostic> diagnostics_;
 };

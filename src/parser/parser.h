@@ -19,14 +19,16 @@ public:
     using SyntaxErrorCallback = std::function<void(const common::Diagnostic&)>;
 
     // out 为 nullptr 时不输出单词与成分名（仅做语法检查）。
+    // recovery 为 true 时启用错误局部化：记录错误后继续解析。
     Parser(lexer::Lexer& lexer, std::ostream* out,
-           SyntaxErrorCallback on_error = {});
+           SyntaxErrorCallback on_error = {}, bool recovery = false);
 
     bool parse_program();
 
     const lexer::Token& current() const { return lookahead_.front(); }
     bool at_end() const { return lookahead_.front().kind == lexer::TokenKind::End; }
     bool ok() const { return ok_; }
+    bool had_error() const { return had_error_; }
 
 protected:
     // 消费当前单词（输出后预读下一个）；失败返回 false。
@@ -38,6 +40,8 @@ protected:
     // 输出 <成分名>。
     void marker(const std::string& name);
     void syntax_error(const lexer::Token& token, const std::string& message);
+    void syntax_error(char code, const lexer::Token& token, const std::string& message);
+    char error_code_for(lexer::TokenKind expected) const;
 
     // 向前查看第 k 个单词（k=0 为当前单词），不输出。
     const lexer::Token& peek_token(std::size_t k);
@@ -100,6 +104,13 @@ private:
     std::map<std::string, bool> function_returns_;  // 已定义函数：名字(小写) -> 是否返回值
     bool eof_ = false;
     bool ok_ = true;
+    bool recovery_ = false;
+    bool had_error_ = false;
+    lexer::Token previous_;
+    bool has_previous_ = false;
+    int last_error_line_ = -1;
+    int last_error_column_ = -1;
+    bool has_last_error_ = false;
 };
 
 }  // namespace parser

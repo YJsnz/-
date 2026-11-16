@@ -13,16 +13,19 @@ namespace {
 struct Options {
     bool dump_lexer = false;
     bool dump_parser = false;
+    bool check = false;
     bool show_help = false;
 };
 
 const char* const kInputFile = "testfile.txt";
 const char* const kOutputFile = "output.txt";
+const char* const kErrorFile = "error.txt";
 
 void print_usage(std::ostream& os) {
     os << "用法：compiler [选项]\n"
        << "  --dump-lexer    输出词法分析结果到 output.txt\n"
        << "  --dump-parser   输出单词与语法成分到 output.txt\n"
+       << "  --check         检查语法/语义错误，输出 error.txt\n"
        << "  -h, --help      显示本帮助\n";
 }
 
@@ -33,6 +36,8 @@ bool parse_args(int argc, char** argv, Options& options, std::string& error) {
             options.dump_lexer = true;
         } else if (arg == "--dump-parser") {
             options.dump_parser = true;
+        } else if (arg == "--check") {
+            options.check = true;
         } else if (arg == "-h" || arg == "--help") {
             options.show_help = true;
         } else {
@@ -79,6 +84,31 @@ int main(int argc, char** argv) {
     if (!read_source(kInputFile, source, error)) {
         std::cerr << "错误：" << error << "\n";
         return 1;
+    }
+
+    // 错误检查模式：只写 error.txt，不输出词法/语法调试信息。
+    if (options.check) {
+        common::ErrorReporter errors;
+        lexer::Lexer lexer(source, [&errors](const common::Diagnostic& diagnostic) {
+            errors.report(diagnostic);
+        });
+        parser::Parser parser(
+            lexer, nullptr,
+            [&errors](const common::Diagnostic& diagnostic) {
+                errors.report(diagnostic);
+            },
+            true);
+        parser.parse_program();
+
+        std::ofstream err_out(kErrorFile, std::ios::binary | std::ios::trunc);
+        if (!err_out) {
+            std::cerr << "错误：无法创建错误输出文件 " << kErrorFile << "\n";
+            return 1;
+        }
+        for (const common::Diagnostic& diagnostic : errors.sorted_unique_by_line()) {
+            err_out << diagnostic.line << ' ' << diagnostic.code << '\n';
+        }
+        return errors.has_errors() ? 1 : 0;
     }
 
     // 最终形态不输出调试信息；只有显式打开开关时才创建结果文件。

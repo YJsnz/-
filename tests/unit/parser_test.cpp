@@ -105,10 +105,10 @@ int main() {
         check(!parser.ok(), "expect 失败后 ok 为假");
         check(diagnostics.size() == 1, "语法错误触发回调");
         check(diagnostics.size() == 1 && diagnostics[0].line == 1 &&
-                  diagnostics[0].column == 3,
-              "语法错误位置为当前单词");
-        check(diagnostics.size() == 1 && diagnostics[0].code == '\0',
-              "语法错误类别码暂未分类");
+                  diagnostics[0].column == 1,
+              "语法错误位置为前一个单词");
+        check(diagnostics.size() == 1 && diagnostics[0].code == 'k',
+              "缺失分号类别码为 k");
     }
     {
         lexer::Lexer lexer("a 1");

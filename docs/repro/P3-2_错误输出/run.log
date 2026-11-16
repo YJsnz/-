@@ -1,0 +1,67 @@
+# P3-2 错误收集与 error.txt 验证
+# 时间: 2026-11-16 12:24:30
+# 提交: f35680a
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/test_unit.sh error_reporter
+编译 tests/unit/error_reporter_test.cpp
+运行 build/unit/error_reporter_test
+[PASS] 初始无错误
+[PASS] 初始诊断列表为空
+[PASS] 报告后 has_errors 为真
+[PASS] 记录一条诊断
+[PASS] 行列号正确
+[PASS] 词法错误类别码为 a
+[PASS] 消息保留
+[PASS] 可记录其他类别码
+[PASS] 类别码 k 保留
+[PASS] clear 后无错误
+[PASS] clear 后列表为空
+[PASS] 按行去重后保留 3 条
+[PASS] 同行保留首个错误
+[PASS] 错误按行号升序排列
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh P3-2
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P3-2
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ cat tests/tmp/P3-2/error.txt
+2 k
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-13
+[PASS] P2-8
+[PASS] P3-2
+----------------------------------------
+共 12 个用例：12 通过，0 失败
+[exit 0]
