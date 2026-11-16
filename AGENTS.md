@@ -18,7 +18,7 @@
 | 验收 | 以指导书官方样例的输出逐行一致为准 |
 | 仓库 | `https://github.com/YJsnz/-.git`，主分支 `main` |
 
-**当前进度：阶段 0 进行中（P0-1 已完成）。下一次开发：P0-2。**
+**当前进度：阶段 0 进行中（P0-1、P0-2 已完成）。下一次开发：P0-3。**
 
 ---
 
@@ -162,7 +162,7 @@
 ### 阶段 0：基础设施
 
 - [x] **P0-1** 建立目录结构与 `.gitignore`（`src/ tests/ docs/ scripts/ tools/ build/`）
-- [ ] **P0-2** `scripts/build.sh`：`g++ -std=c++17` 编译全部源文件，输出 `build/compiler`
+- [x] **P0-2** `scripts/build.sh`：`g++ -std=c++17` 编译全部源文件，输出 `build/compiler`
 - [ ] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
 - [ ] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
 - [ ] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）

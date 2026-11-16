@@ -1,0 +1,19 @@
+# P0-2 构建脚本验证
+# 时间: 2026-11-16 10:46:36
+# 提交: 4d688aa
+# 目录: D:\Code\编译原理
+
+$ rm -rf build && ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 1
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./build/compiler
+compiler skeleton: build OK (P1-1 will add lexer)
+[exit 0]
+
+$ ls -lh build/compiler
+-rwxr-xr-x 1 geqingyu 197121 55K 11月 16 10:46 build/compiler
+[exit 0]
