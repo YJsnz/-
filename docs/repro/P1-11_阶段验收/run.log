@@ -1,0 +1,49 @@
+# P1-11 实验一阶段验收
+# 时间: 2026-11-16 11:43:06
+# 提交: 287a836
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 5
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/verify.sh stage1
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 5
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+----------------------------------------
+共 9 个用例：9 通过，0 失败
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh scanner | tail -n 2
+[PASS] 前导空格后 column == 3
+全部通过
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh lexer | tail -n 2
+[PASS] 正确输入不产生诊断
+全部通过
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh error_reporter | tail -n 2
+[PASS] clear 后列表为空
+全部通过
+[exit 0]
+
+$ git log --oneline -1
+287a836 实验一 词法分析：P1-10 官方样例 exp1 验收
+[exit 0]

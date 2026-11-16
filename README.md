@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验一（词法分析）进行中**：P1-1～P1-10 已完成，下一次开发：P1-11。
+**实验一（词法分析）已完成**（标签 `stage1`），下一次开发：实验二 P2-1。
 
 > `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下输出指导书单词表全部 39 个类别码；每个词法单元保留原文、独立单词值与行号。
 
@@ -38,7 +38,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-10）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-11）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -80,7 +80,7 @@ python tools/capture.py \
 │       └── lexer.h / .cpp         # 词法分析器与错误回调
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
-│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-10）
+│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-11）
 │   ├── unit/                      # 单元测试（scanner 等）
 │   └── tmp/                       # 运行临时目录（不提交）
 ├── docs/
@@ -124,6 +124,7 @@ python tools/capture.py \
   - [P1-8 单词结构](docs/repro/P1-8_单词结构/README.md)
   - [P1-9 错误接口](docs/repro/P1-9_错误接口/README.md)
   - [P1-10 官方样例验收](docs/repro/P1-10_官方样例验收/README.md)
+  - [P1-11 阶段验收](docs/repro/P1-11_阶段验收/README.md)
 
 ## 开发约定（摘要）
 
@@ -135,7 +136,7 @@ python tools/capture.py \
 
 ## 已知限制
 
-- 词法分析已覆盖全部 39 个类别码，官方 exp1 样例逐行一致（P1-10）；P1-11 将做阶段验收并打标签；
-- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-10 词法用例；
+- 实验一（词法分析）已完成并打标签 `stage1`；
+- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-11 词法用例；
 - 语法分析、错误处理、代码生成尚未实现；
 - PCODE 指令集尚未设计（P4-1）。
