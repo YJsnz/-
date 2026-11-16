@@ -1,0 +1,39 @@
+const int N = 2, M = 3;
+const char C = 'a';
+int g[2][3] = {{1, 2, 3}, {4, 5, 6}};
+int add(int a, int b){
+    return (a + b);
+}
+void show(int x){
+    printf("x=", x);
+}
+void main(){
+    int i, s;
+    char c;
+    s = 0;
+    s = -s;
+    s = s * 2 / 1;
+    c = 'z';
+    for (i = 0; i < N; i = i + 1) {
+        s = s + add(i, 1);
+    }
+    while (s > 0) {
+        s = s - 1;
+    }
+    if (s == 0) {
+        show(s);
+    } else {
+        show(g[0][0]);
+    }
+    switch (s) {
+        case 0:
+            s = 1;
+        case 1:
+            s = 2;
+        default:
+            s = 3;
+    }
+    scanf(i);
+    printf("ok");
+    printf(s);
+}
