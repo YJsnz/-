@@ -1,0 +1,30 @@
+# 构建产物
+build/
+*.o
+*.obj
+*.exe
+*.out
+*.ilk
+*.pdb
+
+# 仓库根目录手动运行产生的输出
+/output.txt
+/error.txt
+/pcoderesult.txt
+/testfile.txt
+
+# 测试临时目录
+tests/tmp/
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+.vs/
+
+# Python
+__pycache__/
+*.pyc
+
+# 系统
+Thumbs.db
+Desktop.ini
