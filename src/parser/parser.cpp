@@ -40,6 +40,9 @@ bool Parser::parse_program() {
     if (ok_ && can_start_variable()) {
         parse_variable_declaration();
     }
+    while (ok_ && is_function_definition_start()) {
+        parse_function_definition();
+    }
     // 临时：其余部分在后续 TODO 中实现，先消费以保证演示可跑通。
     while (ok_ && !at_end()) {
         advance();
@@ -359,6 +362,111 @@ bool Parser::parse_variable_declaration() {
     }
 
     marker("变量说明");
+    return ok_;
+}
+
+// ---------------------------------------------------------------- 函数
+
+bool Parser::parse_declaration_header() {
+    if (!parse_type_identifier()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    marker("声明头部");
+    return ok_;
+}
+
+bool Parser::parse_parameter_list() {
+    if (current().kind == lexer::TokenKind::KeywordInt ||
+        current().kind == lexer::TokenKind::KeywordChar) {
+        do {
+            if (!parse_type_identifier()) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+                return false;
+            }
+        } while (ok_ && match(lexer::TokenKind::Comma));
+    }
+
+    marker("参数表");
+    return ok_;
+}
+
+bool Parser::parse_compound_statement_body() {
+    // 临时：P2-6 将替换为 <复合语句> 的真实解析。
+    if (!expect(lexer::TokenKind::LBrace, "{")) {
+        return false;
+    }
+
+    int depth = 1;
+    while (ok_ && depth > 0) {
+        if (at_end()) {
+            syntax_error(current(), "复合语句缺少右花括号 }");
+            return false;
+        }
+        if (current().kind == lexer::TokenKind::LBrace) {
+            ++depth;
+        } else if (current().kind == lexer::TokenKind::RBrace) {
+            --depth;
+        }
+        if (!advance()) {
+            return false;
+        }
+    }
+    return ok_;
+}
+
+bool Parser::is_function_definition_start() {
+    if (current().kind != lexer::TokenKind::KeywordVoid &&
+        current().kind != lexer::TokenKind::KeywordInt &&
+        current().kind != lexer::TokenKind::KeywordChar) {
+        return false;
+    }
+    return peek_token(1).kind == lexer::TokenKind::Identifier &&
+           peek_token(2).kind == lexer::TokenKind::LParen;
+}
+
+bool Parser::parse_function_definition() {
+    if (current().kind == lexer::TokenKind::KeywordVoid) {
+        advance();  // void
+        if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::LParen, "(")) {
+            return false;
+        }
+        if (!parse_parameter_list()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::RParen, ")")) {
+            return false;
+        }
+        if (!parse_compound_statement_body()) {
+            return false;
+        }
+        marker("无返回值函数定义");
+        return ok_;
+    }
+
+    if (!parse_declaration_header()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_parameter_list()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!parse_compound_statement_body()) {
+        return false;
+    }
+    marker("有返回值函数定义");
     return ok_;
 }
 

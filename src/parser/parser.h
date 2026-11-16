@@ -56,6 +56,12 @@ protected:
     bool parse_variable_initializer(int dimensions);
     bool can_start_variable();
 
+    bool parse_declaration_header();       // <声明头部>
+    bool parse_parameter_list();           // <参数表>
+    bool parse_function_definition();      // <有/无返回值函数定义>
+    bool parse_compound_statement_body();  // 临时：仅消费 { ... }
+    bool is_function_definition_start();
+
 private:
     void fill_to(std::size_t k);
 

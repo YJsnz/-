@@ -33,6 +33,10 @@ public:
     using parser::Parser::parse_constant_definition;
     using parser::Parser::parse_integer;
     using parser::Parser::can_start_variable;
+    using parser::Parser::is_function_definition_start;
+    using parser::Parser::parse_declaration_header;
+    using parser::Parser::parse_function_definition;
+    using parser::Parser::parse_parameter_list;
     using parser::Parser::parse_variable_declaration;
     using parser::Parser::parse_variable_definition;
     using parser::Parser::peek_token;
@@ -270,6 +274,108 @@ int main() {
         std::ostringstream out;
         TestParser parser(lexer, &out);
         check(!parser.parse_variable_declaration(), "缺少变量名时解析失败");
+    }
+    {
+        lexer::Lexer lexer("int f(int a, char b){}");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "有返回值函数定义解析成功");
+        check(parser.at_end(), "函数定义消费完所有单词");
+        const std::string expected =
+            "INTTK int\n"
+            "IDENFR f\n"
+            "<声明头部>\n"
+            "LPARENT (\n"
+            "INTTK int\n"
+            "IDENFR a\n"
+            "COMMA ,\n"
+            "CHARTK char\n"
+            "IDENFR b\n"
+            "<参数表>\n"
+            "RPARENT )\n"
+            "LBRACE {\n"
+            "RBRACE }\n"
+            "<有返回值函数定义>\n";
+        check(out.str() == expected, "函数定义与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("void g(){}");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "无返回值函数定义解析成功");
+        const std::string expected =
+            "VOIDTK void\n"
+            "IDENFR g\n"
+            "LPARENT (\n"
+            "<参数表>\n"
+            "RPARENT )\n"
+            "LBRACE {\n"
+            "RBRACE }\n"
+            "<无返回值函数定义>\n";
+        check(out.str() == expected, "无返回值函数输出正确（空参数表）");
+    }
+    {
+        lexer::Lexer lexer("int f(int a){ return(a); }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "带函数体的定义解析成功");
+        const std::string expected =
+            "INTTK int\n"
+            "IDENFR f\n"
+            "<声明头部>\n"
+            "LPARENT (\n"
+            "INTTK int\n"
+            "IDENFR a\n"
+            "<参数表>\n"
+            "RPARENT )\n"
+            "LBRACE {\n"
+            "RETURNTK return\n"
+            "LPARENT (\n"
+            "IDENFR a\n"
+            "RPARENT )\n"
+            "SEMICN ;\n"
+            "RBRACE }\n"
+            "<有返回值函数定义>\n";
+        check(out.str() == expected, "函数体单词按序输出");
+    }
+    {
+        lexer::Lexer lexer1("int f(int a)");
+        std::ostringstream out1;
+        TestParser parser1(lexer1, &out1);
+        check(parser1.is_function_definition_start(), "int f( 被识别为函数定义");
+
+        lexer::Lexer lexer2("int a;");
+        std::ostringstream out2;
+        TestParser parser2(lexer2, &out2);
+        check(!parser2.is_function_definition_start(), "int a; 不是函数定义");
+
+        lexer::Lexer lexer3("void main()");
+        std::ostringstream out3;
+        TestParser parser3(lexer3, &out3);
+        check(!parser3.is_function_definition_start(), "void main 不按普通函数处理");
+    }
+    {
+        lexer::Lexer lexer("void ()");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          });
+
+        check(!parser.parse_function_definition(), "缺少函数名时解析失败");
+        check(diagnostics.size() == 1, "函数名缺失错误被上报");
+    }
+    {
+        lexer::Lexer lexer("void g(){ if (x) { } }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "嵌套花括号的函数体解析成功");
+        check(parser.at_end(), "嵌套函数体消费完所有单词");
     }
 
     if (failures == 0) {
