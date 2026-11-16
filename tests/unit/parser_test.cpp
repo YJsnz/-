@@ -20,6 +20,40 @@ void check(bool condition, const std::string& name) {
     }
 }
 
+std::vector<common::Diagnostic> collect_errors(const std::string& source,
+                                               bool& parsed) {
+    lexer::Lexer lexer(source);
+    std::ostringstream out;
+    std::vector<common::Diagnostic> diagnostics;
+    parser::Parser parser(
+        lexer, &out,
+        [&diagnostics](const common::Diagnostic& diagnostic) {
+            diagnostics.push_back(diagnostic);
+        },
+        true);
+    parsed = parser.parse_program();
+    return diagnostics;
+}
+
+bool has_error(const std::vector<common::Diagnostic>& diagnostics, char code,
+               int line) {
+    for (const common::Diagnostic& diagnostic : diagnostics) {
+        if (diagnostic.code == code && diagnostic.line == line) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool has_any_error(const std::vector<common::Diagnostic>& diagnostics, char code) {
+    for (const common::Diagnostic& diagnostic : diagnostics) {
+        if (diagnostic.code == code) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // 暴露受保护的解析原语，便于单元测试。
 class TestParser : public parser::Parser {
 public:
@@ -1561,6 +1595,63 @@ int main() {
             }
         }
         check(has_d && !has_e, "参数个数错误优先报 d，不报 e");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nif (c == 1) {\n}\n}\n", parsed);
+        check(parsed, "字符条件程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 3), "char 与 int 比较报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nif ('a' == 1) {\n}\n}\n", parsed);
+        check(parsed, "字符字面量条件程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 2), "字符字面量与 int 比较报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nif (1 == c) {\n}\n}\n", parsed);
+        check(parsed, "右侧字符条件程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 3), "int 与 char 比较报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint a, b;\nif (a < b) {\n}\n}\n", parsed);
+        check(parsed, "整型条件程序解析成功");
+        check(!has_any_error(diagnostics, 'f'), "整型条件不报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nif ((c) == 1) {\n}\n}\n", parsed);
+        check(parsed, "括号字符条件程序解析成功");
+        check(!has_any_error(diagnostics, 'f'), "括号内字符视为整型，不报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nwhile (c < 1) {\n}\n}\n", parsed);
+        check(parsed, "字符 while 条件程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 3), "while 条件含字符报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint i;\nchar c;\nfor (i = 0; c < 1; i = i + 1) {\n}\n}\n",
+            parsed);
+        check(parsed, "字符 for 条件程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 4), "for 条件含字符报 f");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar a, b;\nif (a == b) {\n}\n}\n", parsed);
+        check(parsed, "字符间比较程序仍可继续解析");
+        check(has_error(diagnostics, 'f', 3), "两个字符比较报 f");
     }
 
     if (failures == 0) {

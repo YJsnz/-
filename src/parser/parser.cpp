@@ -1148,7 +1148,9 @@ bool Parser::parse_condition() {
     if (!parse_expression()) {
         return false;
     }
+    const semantic::DataType left_type = last_expression_type_;
 
+    const lexer::Token operator_token = current();
     const lexer::TokenKind kind = current().kind;
     if (kind != lexer::TokenKind::Less && kind != lexer::TokenKind::LessEqual &&
         kind != lexer::TokenKind::Greater &&
@@ -1161,6 +1163,12 @@ bool Parser::parse_condition() {
 
     if (!parse_expression()) {
         return false;
+    }
+    const semantic::DataType right_type = last_expression_type_;
+
+    if (recovery_ && (left_type == semantic::DataType::Char ||
+                      right_type == semantic::DataType::Char)) {
+        syntax_error('f', operator_token, "条件判断中的表达式只能为整型");
     }
 
     marker("条件");

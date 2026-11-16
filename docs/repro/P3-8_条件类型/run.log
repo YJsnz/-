@@ -1,0 +1,74 @@
+# P3-8 条件判断类型类别码 f 验证
+# 时间: 2026-11-16 12:44:10
+# 提交: eebf08f
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 18
+[PASS] 参数个数错误优先报 d，不报 e
+[PASS] 字符条件程序仍可继续解析
+[PASS] char 与 int 比较报 f
+[PASS] 字符字面量条件程序仍可继续解析
+[PASS] 字符字面量与 int 比较报 f
+[PASS] 右侧字符条件程序仍可继续解析
+[PASS] int 与 char 比较报 f
+[PASS] 整型条件程序解析成功
+[PASS] 整型条件不报 f
+[PASS] 括号字符条件程序解析成功
+[PASS] 括号内字符视为整型，不报 f
+[PASS] 字符 while 条件程序仍可继续解析
+[PASS] while 条件含字符报 f
+[PASS] 字符 for 条件程序仍可继续解析
+[PASS] for 条件含字符报 f
+[PASS] 字符间比较程序仍可继续解析
+[PASS] 两个字符比较报 f
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh P3-8
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P3-8
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ cat tests/tmp/P3-8/error.txt
+3 f
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-13
+[PASS] P2-8
+[PASS] P3-2
+[PASS] P3-3
+[PASS] P3-4
+[PASS] P3-5
+[PASS] P3-6
+[PASS] P3-7
+[PASS] P3-8
+----------------------------------------
+共 18 个用例：18 通过，0 失败
+[exit 0]
