@@ -116,6 +116,7 @@ private:
     semantic::SymbolTable symbols_;
     semantic::DataType last_type_ = semantic::DataType::Unknown;
     semantic::DataType current_return_type_ = semantic::DataType::Unknown;
+    bool current_function_has_return_ = false;
     semantic::DataType last_expression_type_ = semantic::DataType::Unknown;
     semantic::DataType last_term_type_ = semantic::DataType::Unknown;
     semantic::DataType last_factor_type_ = semantic::DataType::Unknown;

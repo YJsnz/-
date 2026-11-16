@@ -1696,6 +1696,70 @@ int main() {
         check(parsed, "分支内带表达式 return 程序仍可继续解析");
         check(has_error(diagnostics, 'g', 3), "void 函数分支内 return(表达式) 报 g");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "缺少 return 的有返回值函数程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 2), "缺少 return 报 h 且行号为右花括号");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn;\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "无表达式 return 的有返回值函数程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 2), "有返回值函数 return; 报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn();\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "空括号 return 的有返回值函数程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 2), "有返回值函数 return() 报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "正常 return 的有返回值函数解析成功");
+        check(!has_any_error(diagnostics, 'h'), "int 函数 return(1) 不报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "char f(){\nreturn(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "返回类型不匹配程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 2), "char 函数 return(1) 报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn('a');\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "返回字符到整型函数程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 2), "int 函数 return('a') 报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "char f(){\nreturn('a');\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "字符函数返回字符解析成功");
+        check(!has_any_error(diagnostics, 'h'), "char 函数 return('a') 不报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nif (1 < 2) return(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "分支内存在 return 的函数解析成功");
+        check(!has_any_error(diagnostics, 'h'), "存在一条有效 return 即不报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn(1);\nreturn;\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "有效与无效 return 并存程序仍可继续解析");
+        check(has_error(diagnostics, 'h', 3), "无效 return; 报 h");
+        check(!has_error(diagnostics, 'h', 4), "已有有效 return 时右花括号不报 h");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

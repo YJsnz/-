@@ -750,10 +750,17 @@ bool Parser::parse_write_statement() {
 bool Parser::parse_return_statement() {
     const lexer::Token return_token = current();
     advance();  // return
+
+    const bool function_returns_value =
+        current_return_type_ == semantic::DataType::Int ||
+        current_return_type_ == semantic::DataType::Char;
+
     bool has_parentheses = false;
+    bool has_expression = false;
     if (ok_ && match(lexer::TokenKind::LParen)) {
         has_parentheses = true;
         if (ok_ && current().kind != lexer::TokenKind::RParen) {
+            has_expression = true;
             if (!parse_expression()) {
                 return false;
             }
@@ -763,9 +770,23 @@ bool Parser::parse_return_statement() {
         }
     }
 
-    if (recovery_ && has_parentheses &&
-        current_return_type_ == semantic::DataType::Void) {
-        syntax_error('g', return_token, "无返回值函数中出现带括号的 return");
+    if (recovery_) {
+        if (!function_returns_value) {
+            if (has_parentheses) {
+                syntax_error('g', return_token, "无返回值函数中出现带括号的 return");
+            }
+        } else {
+            current_function_has_return_ = true;
+            if (!has_parentheses) {
+                syntax_error('h', return_token, "有返回值函数中 return 缺少表达式");
+            } else if (!has_expression) {
+                syntax_error('h', return_token, "有返回值函数中 return() 缺少表达式");
+            } else if (last_expression_type_ != semantic::DataType::Unknown &&
+                       last_expression_type_ != current_return_type_) {
+                syntax_error('h', return_token,
+                             "return 表达式类型与函数返回值不一致");
+            }
+        }
     }
 
     marker("返回语句");
@@ -867,8 +888,15 @@ bool Parser::parse_function_definition() {
         return false;
     }
     const semantic::DataType saved_return_type = current_return_type_;
+    const bool saved_has_return = current_function_has_return_;
     current_return_type_ = return_type;
+    current_function_has_return_ = false;
     const bool body_ok = parse_compound_statement_body();
+    if (recovery_ && body_ok && return_type != semantic::DataType::Void &&
+        !current_function_has_return_) {
+        syntax_error('h', previous_, "有返回值函数缺少 return 语句");
+    }
+    current_function_has_return_ = saved_has_return;
     current_return_type_ = saved_return_type;
     symbols_.leave_scope();
     if (!body_ok) {
