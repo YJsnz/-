@@ -124,6 +124,7 @@ private:
     lexer::Token last_declarator_token_;
     std::vector<ParameterInfo> last_parameters_;
     std::vector<semantic::DataType> last_argument_types_;
+    std::vector<long long> last_dimensions_;
     int last_argument_count_ = 0;
     bool eof_ = false;
     bool ok_ = true;

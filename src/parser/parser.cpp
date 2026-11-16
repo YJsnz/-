@@ -333,6 +333,7 @@ bool Parser::parse_type_identifier() {
 
 bool Parser::parse_declarator(int& dimensions) {
     dimensions = 0;
+    last_dimensions_.clear();
     last_declarator_token_ = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
@@ -342,6 +343,7 @@ bool Parser::parse_declarator(int& dimensions) {
         if (!parse_unsigned_integer()) {
             return false;
         }
+        last_dimensions_.push_back(previous_.int_value);
         if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
             return false;
         }
@@ -351,6 +353,7 @@ bool Parser::parse_declarator(int& dimensions) {
             if (!parse_unsigned_integer()) {
                 return false;
             }
+            last_dimensions_.push_back(previous_.int_value);
             if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
                 return false;
             }
@@ -369,31 +372,50 @@ bool Parser::parse_variable_initializer(int dimensions) {
         return false;
     }
 
-    auto parse_constant_list = [this]() -> bool {
+    auto parse_constant_list = [this](long long& count) -> bool {
+        count = 0;
         if (!parse_constant()) {
             return false;
         }
+        ++count;
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_constant()) {
                 return false;
             }
+            ++count;
         }
         return ok_;
     };
 
     if (dimensions == 1) {
-        if (!parse_constant_list()) {
+        long long count = 0;
+        if (!parse_constant_list(count)) {
             return false;
         }
-        return expect(lexer::TokenKind::RBrace, "}");
+        if (!expect(lexer::TokenKind::RBrace, "}")) {
+            return false;
+        }
+        if (recovery_ && !last_dimensions_.empty() &&
+            count != last_dimensions_[0]) {
+            syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+        }
+        return ok_;
     }
 
     // 二维：{ { consts } {, { consts }} }
+    long long rows = 0;
+    long long count = 0;
+    bool count_matches = true;
+
     if (!expect(lexer::TokenKind::LBrace, "{")) {
         return false;
     }
-    if (!parse_constant_list()) {
+    if (!parse_constant_list(count)) {
         return false;
+    }
+    ++rows;
+    if (last_dimensions_.size() >= 2 && count != last_dimensions_[1]) {
+        count_matches = false;
     }
     if (!expect(lexer::TokenKind::RBrace, "}")) {
         return false;
@@ -403,15 +425,30 @@ bool Parser::parse_variable_initializer(int dimensions) {
         if (!expect(lexer::TokenKind::LBrace, "{")) {
             return false;
         }
-        if (!parse_constant_list()) {
+        if (!parse_constant_list(count)) {
             return false;
+        }
+        ++rows;
+        if (last_dimensions_.size() >= 2 && count != last_dimensions_[1]) {
+            count_matches = false;
         }
         if (!expect(lexer::TokenKind::RBrace, "}")) {
             return false;
         }
     }
 
-    return expect(lexer::TokenKind::RBrace, "}");
+    if (!expect(lexer::TokenKind::RBrace, "}")) {
+        return false;
+    }
+    if (recovery_ && last_dimensions_.size() >= 2) {
+        if (rows != last_dimensions_[0]) {
+            count_matches = false;
+        }
+        if (!count_matches) {
+            syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+        }
+    }
+    return ok_;
 }
 
 bool Parser::parse_variable_definition() {

@@ -2079,6 +2079,62 @@ int main() {
         check(parsed, "数组下标完整程序解析成功");
         check(!has_any_error(diagnostics, 'm'), "数组下标完整不报 m");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2] = {1, 2, 3};\nvoid main(){\n}\n", parsed);
+        check(parsed, "一维数组初始化过多程序仍可继续解析");
+        check(has_error(diagnostics, 'n', 1), "一维数组初始化过多报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2] = {1};\nvoid main(){\n}\n", parsed);
+        check(parsed, "一维数组初始化过少程序仍可继续解析");
+        check(has_error(diagnostics, 'n', 1), "一维数组初始化过少报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2] = {1, 2};\nvoid main(){\n}\n", parsed);
+        check(parsed, "一维数组初始化个数正确程序解析成功");
+        check(!has_any_error(diagnostics, 'n'), "一维数组初始化个数正确不报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2] = {{1, 2}};\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组行数不足程序仍可继续解析");
+        check(has_error(diagnostics, 'n', 1), "二维数组行数不足报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2] = {{1, 2}, {3}};\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组列数不足程序仍可继续解析");
+        check(has_error(diagnostics, 'n', 1), "二维数组列数不足报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2] = {{1, 2}, {3, 4}};\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组初始化个数正确程序解析成功");
+        check(!has_any_error(diagnostics, 'n'), "二维数组初始化个数正确不报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint a[2] = {1};\n}\n", parsed);
+        check(parsed, "局部数组初始化个数错误程序仍可继续解析");
+        check(has_error(diagnostics, 'n', 2), "局部数组初始化个数错误报 n");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "char a[2] = {'a', 'b'};\nvoid main(){\n}\n", parsed);
+        check(parsed, "字符数组初始化个数正确程序解析成功");
+        check(!has_any_error(diagnostics, 'n'), "字符数组初始化个数正确不报 n");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
