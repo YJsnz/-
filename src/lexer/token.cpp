@@ -8,6 +8,8 @@ const char* token_code(TokenKind kind) {
             return "IDENFR";
         case TokenKind::IntConstant:
             return "INTCON";
+        case TokenKind::CharConstant:
+            return "CHARCON";
         case TokenKind::KeywordConst:
             return "CONSTTK";
         case TokenKind::KeywordInt:

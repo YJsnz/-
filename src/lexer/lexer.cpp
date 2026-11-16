@@ -42,6 +42,11 @@ bool is_identifier_char(char c) {
     return is_letter(c) || is_digit(c);
 }
 
+// <字符> ::= '+' | '-' | '*' | '/' | <字母> | <数字>
+bool is_char_literal_char(char c) {
+    return is_letter(c) || is_digit(c) || c == '+' || c == '-' || c == '*' || c == '/';
+}
+
 char ascii_lower(char c) {
     if (c >= 'A' && c <= 'Z') {
         return static_cast<char>(c - 'A' + 'a');
@@ -92,10 +97,14 @@ Token Lexer::next_token() {
         return scan_number();
     }
 
+    if (scanner_.peek() == '\'') {
+        return scan_char_constant();
+    }
+
     token.kind = TokenKind::Error;
     token.lexeme = std::string(1, scanner_.advance());
     token.message = "未识别的字符 '" + token.lexeme +
-                    "'（字符、字符串、运算符与界符将在后续任务支持）";
+                    "'（字符串、运算符与界符将在后续任务支持）";
     return token;
 }
 
@@ -122,6 +131,50 @@ Token Lexer::scan_number() {
     }
 
     token.kind = TokenKind::IntConstant;
+    return token;
+}
+
+Token Lexer::scan_char_constant() {
+    Token token;
+    token.line = scanner_.line();
+    token.column = scanner_.column();
+
+    scanner_.advance();  // 开引号
+
+    if (scanner_.at_end()) {
+        token.kind = TokenKind::Error;
+        token.message = "字符常量缺少结束引号";
+        return token;
+    }
+
+    const char content = scanner_.peek();
+    if (content == '\'') {
+        scanner_.advance();
+        token.kind = TokenKind::Error;
+        token.lexeme = "''";
+        token.message = "字符常量不能为空";
+        return token;
+    }
+
+    if (!is_char_literal_char(content)) {
+        scanner_.advance();
+        token.kind = TokenKind::Error;
+        token.lexeme = std::string("'") + content;
+        token.message = "字符常量中出现非法字符 '" + std::string(1, content) + "'";
+        return token;
+    }
+
+    token.lexeme = std::string(1, content);  // 输出不含引号
+    scanner_.advance();                       // 内容字符
+
+    if (scanner_.at_end() || scanner_.peek() != '\'') {
+        token.kind = TokenKind::Error;
+        token.message = "字符常量只能包含一个字符，且必须以单引号结束";
+        return token;
+    }
+
+    scanner_.advance();  // 闭引号
+    token.kind = TokenKind::CharConstant;
     return token;
 }
 

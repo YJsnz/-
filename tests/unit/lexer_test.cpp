@@ -164,6 +164,53 @@ int main() {
               "07 位于 2:1 且保留前导零");
     }
     {
+        check(std::string(lexer::token_code(lexer::TokenKind::IntConstant)) == "INTCON",
+              "整数类别码为 INTCON");
+    }
+    {
+        const char* allowed[] = {"'_'", "'+'", "'-'", "'*'", "'/'", "'a'", "'Z'", "'0'"};
+        const char* contents[] = {"_", "+", "-", "*", "/", "a", "Z", "0"};
+        bool all_ok = true;
+        for (std::size_t i = 0; i < sizeof(allowed) / sizeof(allowed[0]); ++i) {
+            const lexer::Token t = first_token(allowed[i]);
+            if (t.kind != lexer::TokenKind::CharConstant || t.lexeme != contents[i]) {
+                all_ok = false;
+            }
+        }
+        check(all_ok, "允许的字符常量全部识别");
+    }
+    {
+        const lexer::Token t = first_token("'_'");
+        check(t.kind == lexer::TokenKind::CharConstant && t.lexeme == "_",
+              "字符常量输出不含引号");
+        check(t.line == 1 && t.column == 1, "字符常量位置为 1:1");
+    }
+    {
+        const lexer::Token t = first_token("  'x'");
+        check(t.kind == lexer::TokenKind::CharConstant && t.lexeme == "x" &&
+                  t.line == 1 && t.column == 3,
+              "字符常量位于 1:3");
+    }
+    {
+        check(first_token("''").kind == lexer::TokenKind::Error, "空字符常量报错");
+        check(first_token("'ab'").kind == lexer::TokenKind::Error, "多字符常量报错");
+        check(first_token("'@'").kind == lexer::TokenKind::Error, "非法内容报错");
+        check(first_token("'a").kind == lexer::TokenKind::Error, "缺少结束引号报错");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("'a' b");
+        check(tokens.size() == 3 && tokens[0].kind == lexer::TokenKind::CharConstant &&
+                  tokens[0].lexeme == "a",
+              "字符常量后接标识符：第一个词法单元正确");
+        check(tokens.size() == 3 && tokens[1].kind == lexer::TokenKind::Identifier &&
+                  tokens[1].lexeme == "b",
+              "字符常量后接标识符：第二个词法单元正确");
+    }
+    {
+        check(std::string(lexer::token_code(lexer::TokenKind::CharConstant)) == "CHARCON",
+              "字符常量类别码为 CHARCON");
+    }
+    {
         check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
               "标识符类别码为 IDENFR");
         check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",
