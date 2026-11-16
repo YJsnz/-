@@ -331,6 +331,45 @@ int main() {
               ": 类别码为 COLON");
     }
     {
+        const lexer::Token t = first_token("coNst");
+        check(t.raw == "coNst" && t.lexeme == "coNst" && t.value == "const",
+              "保留字 raw/lexeme 保留原文，value 为小写规范形式");
+    }
+    {
+        const lexer::Token t = first_token("a1");
+        check(t.raw == "a1" && t.lexeme == "a1" && t.value == "a1",
+              "标识符 raw/lexeme/value 均为原名");
+    }
+    {
+        const lexer::Token t = first_token("001");
+        check(t.raw == "001" && t.lexeme == "001" && t.value == "1" &&
+                  t.int_value == 1,
+              "整数 raw/lexeme 保留前导零，value/int_value 为数值");
+        const lexer::Token big = first_token("12345");
+        check(big.int_value == 12345 && big.value == "12345", "多位整数数值正确");
+    }
+    {
+        const lexer::Token t = first_token("'_'");
+        check(t.raw == "'_'" && t.lexeme == "_" && t.value == "_" &&
+                  t.int_value == 95,
+              "字符常量 raw 含引号，value 为字符，int_value 为 ASCII");
+    }
+    {
+        const lexer::Token t = first_token("\"Hi\"");
+        check(t.raw == "\"Hi\"" && t.lexeme == "Hi" && t.value == "Hi",
+              "字符串 raw 含引号，lexeme/value 为内容");
+    }
+    {
+        const lexer::Token t = first_token("<=");
+        check(t.raw == "<=" && t.lexeme == "<=" && t.value == "<=",
+              "运算符 raw/lexeme/value 均为符号本身");
+    }
+    {
+        const lexer::Token t = first_token("  42");
+        check(t.line == 1 && t.column == 3 && t.raw == "42" && t.int_value == 42,
+              "行号列号与 raw 同时正确");
+    }
+    {
         check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
               "标识符类别码为 IDENFR");
         check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",

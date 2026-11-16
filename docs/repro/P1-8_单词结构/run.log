@@ -1,0 +1,68 @@
+# P1-8 单词结构验证
+# 时间: 2026-11-16 11:31:11
+# 提交: ba4f9f6
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 4
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh lexer | tail -n 14
+[PASS] : 类别码为 COLON
+[PASS] 保留字 raw/lexeme 保留原文，value 为小写规范形式
+[PASS] 标识符 raw/lexeme/value 均为原名
+[PASS] 整数 raw/lexeme 保留前导零，value/int_value 为数值
+[PASS] 多位整数数值正确
+[PASS] 字符常量 raw 含引号，value 为字符，int_value 为 ASCII
+[PASS] 字符串 raw 含引号，lexeme/value 为内容
+[PASS] 运算符 raw/lexeme/value 均为符号本身
+[PASS] 行号列号与 raw 同时正确
+[PASS] 标识符类别码为 IDENFR
+[PASS] const 类别码为 CONSTTK
+[PASS] return 类别码为 RETURNTK
+[PASS] 空输入立即返回 End
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 4
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+----------------------------------------
+共 7 个用例：7 通过，0 失败
+[exit 0]
+
+$ cat tests/tmp/P1-8/output.txt
+CONSTTK const
+INTTK int
+IDENFR a1
+SEMICN ;
+IDENFR a1
+ASSIGN =
+INTCON 001
+PLUS +
+INTCON 2
+SEMICN ;
+PRINTFTK printf
+LPARENT (
+STRCON ok
+RPARENT )
+SEMICN ;
+CHARTK char
+IDENFR c
+ASSIGN =
+CHARCON x
+SEMICN ;
+[exit 0]

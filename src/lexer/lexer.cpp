@@ -1,6 +1,8 @@
 #include "lexer/lexer.h"
 
+#include <cerrno>
 #include <cstddef>
+#include <cstdlib>
 
 namespace lexer {
 namespace {
@@ -69,6 +71,18 @@ std::string to_ascii_lower(const std::string& text) {
     return lowered;
 }
 
+// 解析十进制无符号整数；溢出或空串返回 false，原文字符串仍保留。
+bool parse_int_value(const std::string& digits, long long& out) {
+    errno = 0;
+    char* end = nullptr;
+    const long long value = std::strtoll(digits.c_str(), &end, 10);
+    if (errno == ERANGE || end == digits.c_str()) {
+        return false;
+    }
+    out = value;
+    return true;
+}
+
 TokenKind keyword_kind(const std::string& lexeme) {
     const std::string lowered = to_ascii_lower(lexeme);
     for (const KeywordEntry& entry : kKeywords) {
@@ -82,6 +96,10 @@ TokenKind keyword_kind(const std::string& lexeme) {
 }  // namespace
 
 Lexer::Lexer(const std::string& source) : scanner_(source) {}
+
+std::string Lexer::slice_from(std::size_t start) const {
+    return scanner_.source().substr(start, scanner_.offset() - start);
+}
 
 Token Lexer::next_token() {
     scanner_.skip_whitespace();
@@ -118,12 +136,19 @@ Token Lexer::scan_identifier_or_keyword() {
     Token token;
     token.line = scanner_.line();
     token.column = scanner_.column();
+    const std::size_t start = scanner_.offset();
 
     while (!scanner_.at_end() && is_identifier_char(scanner_.peek())) {
         token.lexeme.push_back(scanner_.advance());
     }
 
+    token.raw = slice_from(start);
     token.kind = keyword_kind(token.lexeme);
+    if (token.kind == TokenKind::Identifier) {
+        token.value = token.lexeme;  // 标识符：保留原名
+    } else {
+        token.value = to_ascii_lower(token.lexeme);  // 保留字：小写规范形式
+    }
     return token;
 }
 
@@ -131,12 +156,24 @@ Token Lexer::scan_number() {
     Token token;
     token.line = scanner_.line();
     token.column = scanner_.column();
+    const std::size_t start = scanner_.offset();
 
     while (!scanner_.at_end() && is_digit(scanner_.peek())) {
         token.lexeme.push_back(scanner_.advance());
     }
 
+    token.raw = slice_from(start);
     token.kind = TokenKind::IntConstant;
+
+    long long value = 0;
+    if (parse_int_value(token.lexeme, value)) {
+        token.int_value = value;
+        token.value = std::to_string(value);
+    } else {
+        // 数值超出 long long 时暂记 0，原文仍完整保留。
+        token.int_value = 0;
+        token.value = token.lexeme;
+    }
     return token;
 }
 
@@ -144,6 +181,7 @@ Token Lexer::scan_char_constant() {
     Token token;
     token.line = scanner_.line();
     token.column = scanner_.column();
+    const std::size_t start = scanner_.offset();
 
     scanner_.advance();  // 开引号
 
@@ -180,6 +218,9 @@ Token Lexer::scan_char_constant() {
     }
 
     scanner_.advance();  // 闭引号
+    token.raw = slice_from(start);
+    token.value = token.lexeme;
+    token.int_value = static_cast<unsigned char>(content);
     token.kind = TokenKind::CharConstant;
     return token;
 }
@@ -188,6 +229,7 @@ Token Lexer::scan_string_constant() {
     Token token;
     token.line = scanner_.line();
     token.column = scanner_.column();
+    const std::size_t start = scanner_.offset();
 
     scanner_.advance();  // 开引号
     std::string content;
@@ -211,6 +253,8 @@ Token Lexer::scan_string_constant() {
             }
             token.kind = TokenKind::StringConstant;
             token.lexeme = content;  // 输出不含双引号
+            token.raw = slice_from(start);
+            token.value = content;
             return token;
         }
 
@@ -231,6 +275,7 @@ Token Lexer::scan_operator_or_delimiter() {
     Token token;
     token.line = scanner_.line();
     token.column = scanner_.column();
+    const std::size_t start = scanner_.offset();
 
     token.lexeme.push_back(scanner_.advance());
     const char c = token.lexeme[0];
@@ -314,6 +359,8 @@ Token Lexer::scan_operator_or_delimiter() {
             break;
     }
 
+    token.raw = slice_from(start);
+    token.value = token.lexeme;
     return token;
 }
 

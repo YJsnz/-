@@ -54,7 +54,10 @@ enum class TokenKind {
 
 struct Token {
     TokenKind kind = TokenKind::End;
-    std::string lexeme;  // 原样保留（大小写、前导零等）
+    std::string raw;     // 源码原文（字符/字符串含引号）
+    std::string lexeme;  // 输出形式（字符/字符串不含引号）
+    std::string value;   // 独立单词值：标识符原名、保留字小写、整数规范十进制、字符/字符串内容
+    long long int_value = 0;  // INTCON 的数值；CHARCON 的 ASCII 码
     int line = 1;
     int column = 1;
     std::string message;  // 仅 Error 使用

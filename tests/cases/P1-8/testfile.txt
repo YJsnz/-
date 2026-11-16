@@ -1,0 +1,4 @@
+const int a1;
+a1 = 001 + 2;
+printf("ok");
+char c = 'x';

@@ -16,6 +16,9 @@ public:
     Token next_token();
 
 private:
+    // 从 start 到当前游标的源码片段。
+    std::string slice_from(std::size_t start) const;
+
     Token scan_identifier_or_keyword();
     Token scan_number();
     Token scan_char_constant();
