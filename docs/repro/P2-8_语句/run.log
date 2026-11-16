@@ -1,0 +1,72 @@
+# P2-8 赋值/读写/返回语句与官方 exp2 验证
+# 时间: 2026-11-16 12:05:21
+# 提交: d2c723a
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 20
+[PASS] 赋值语句解析成功
+[PASS] 赋值语句与成分名顺序正确
+[PASS] 数组元素赋值解析成功
+[PASS] 数组下标后接赋值
+[PASS] 读语句解析成功
+[PASS] 读语句输出正确
+[PASS] 字符串写语句解析成功
+[PASS] 字符串写语句输出正确
+[PASS] 字符串加表达式写语句解析成功
+[PASS] 字符串与表达式之间输出逗号与表达式标记
+[PASS] 表达式写语句解析成功
+[PASS] 表达式写语句直接解析表达式
+[PASS] 无表达式返回语句解析成功
+[PASS] 无表达式返回语句输出正确
+[PASS] 带表达式返回语句解析成功
+[PASS] 返回表达式后输出右括号与返回语句标记
+[PASS] 空语句解析成功
+[PASS] 空语句输出正确
+[PASS] 控制语句在 P2-8 阶段暂不支持
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh P2-8
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P2-8
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ diff -u tests/official/exp2/output.txt tests/tmp/P2-8/output.txt && echo "与官方 exp2 逐行一致"
+与官方 exp2 逐行一致
+[exit 0]
+
+$ wc -l tests/tmp/P2-8/output.txt
+119 tests/tmp/P2-8/output.txt
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-8
+----------------------------------------
+共 10 个用例：10 通过，0 失败
+[exit 0]

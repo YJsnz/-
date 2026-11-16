@@ -426,7 +426,7 @@ bool Parser::parse_compound_statement() {
 
 bool Parser::parse_statement_list() {
     while (ok_ && !at_end() && current().kind != lexer::TokenKind::RBrace) {
-        if (!skip_statement_temporarily()) {
+        if (!parse_statement()) {
             return false;
         }
     }
@@ -438,40 +438,162 @@ bool Parser::parse_statement_list() {
     return true;
 }
 
-bool Parser::skip_statement_temporarily() {
-    // P2-8 起替换为真实语句解析；当前按分号/花括号粗略跳过一个语句。
+bool Parser::parse_statement() {
     if (current().kind == lexer::TokenKind::LBrace) {
-        int depth = 0;
-        while (ok_ && !at_end()) {
-            if (current().kind == lexer::TokenKind::LBrace) {
-                ++depth;
-            } else if (current().kind == lexer::TokenKind::RBrace) {
-                --depth;
-            }
-            advance();
-            if (depth == 0) {
-                break;
-            }
+        advance();  // '{'
+        if (!parse_statement_list()) {
+            return false;
         }
+        if (!expect(lexer::TokenKind::RBrace, "右花括号 }")) {
+            return false;
+        }
+        marker("语句");
         return ok_;
     }
 
-    int depth = 0;
-    while (ok_ && !at_end()) {
-        if (depth == 0 && (current().kind == lexer::TokenKind::Semicolon ||
-                           current().kind == lexer::TokenKind::RBrace)) {
-            break;
-        }
-        if (current().kind == lexer::TokenKind::LBrace) {
-            ++depth;
-        } else if (current().kind == lexer::TokenKind::RBrace) {
-            --depth;
-        }
+    if (current().kind == lexer::TokenKind::Semicolon) {
         advance();
+        marker("语句");
+        return ok_;
     }
-    if (ok_ && current().kind == lexer::TokenKind::Semicolon) {
+
+    if (current().kind == lexer::TokenKind::KeywordReturn) {
+        if (!parse_return_statement()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
+    }
+
+    if (current().kind == lexer::TokenKind::KeywordScanf) {
+        if (!parse_read_statement()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
+    }
+
+    if (current().kind == lexer::TokenKind::KeywordPrintf) {
+        if (!parse_write_statement()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
+    }
+
+    if (current().kind == lexer::TokenKind::Identifier) {
+        if (!parse_assignment_statement()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
+    }
+
+    syntax_error(current(), "暂不支持的语句（控制语句将在 P2-9～P2-11 实现）");
+    return false;
+}
+
+bool Parser::parse_assignment_statement() {
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+
+    if (ok_ && match(lexer::TokenKind::LBracket)) {
+        if (!parse_expression()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+            return false;
+        }
+        if (ok_ && match(lexer::TokenKind::LBracket)) {
+            if (!parse_expression()) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+                return false;
+            }
+        }
+    }
+
+    if (!expect(lexer::TokenKind::Assign, "=")) {
+        return false;
+    }
+    if (!parse_expression()) {
+        return false;
+    }
+
+    marker("赋值语句");
+    return ok_;
+}
+
+bool Parser::parse_read_statement() {
+    advance();  // scanf
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+
+    marker("读语句");
+    return ok_;
+}
+
+bool Parser::parse_write_statement() {
+    advance();  // printf
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+
+    if (current().kind == lexer::TokenKind::StringConstant) {
         advance();
+        marker("字符串");
+        if (ok_ && match(lexer::TokenKind::Comma)) {
+            if (!parse_expression()) {
+                return false;
+            }
+        }
+    } else {
+        if (!parse_expression()) {
+            return false;
+        }
     }
+
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+
+    marker("写语句");
+    return ok_;
+}
+
+bool Parser::parse_return_statement() {
+    advance();  // return
+    if (ok_ && match(lexer::TokenKind::LParen)) {
+        if (!parse_expression()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::RParen, ")")) {
+            return false;
+        }
+    }
+
+    marker("返回语句");
     return ok_;
 }
 

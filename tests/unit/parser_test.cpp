@@ -34,6 +34,7 @@ public:
     using parser::Parser::parse_integer;
     using parser::Parser::can_start_variable;
     using parser::Parser::is_function_definition_start;
+    using parser::Parser::parse_assignment_statement;
     using parser::Parser::parse_declaration_header;
     using parser::Parser::parse_expression;
     using parser::Parser::parse_factor;
@@ -41,8 +42,12 @@ public:
     using parser::Parser::parse_function_definition;
     using parser::Parser::parse_main_function;
     using parser::Parser::parse_parameter_list;
+    using parser::Parser::parse_read_statement;
+    using parser::Parser::parse_return_statement;
+    using parser::Parser::parse_statement;
     using parser::Parser::parse_term;
     using parser::Parser::parse_value_parameter_list;
+    using parser::Parser::parse_write_statement;
     using parser::Parser::parse_variable_declaration;
     using parser::Parser::parse_variable_definition;
     using parser::Parser::peek_token;
@@ -345,8 +350,13 @@ int main() {
             "RETURNTK return\n"
             "LPARENT (\n"
             "IDENFR a\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
             "RPARENT )\n"
+            "<返回语句>\n"
             "SEMICN ;\n"
+            "<语句>\n"
             "<语句列>\n"
             "<复合语句>\n"
             "RBRACE }\n"
@@ -382,12 +392,12 @@ int main() {
         check(diagnostics.size() == 1, "函数名缺失错误被上报");
     }
     {
-        lexer::Lexer lexer("void g(){ if (x) { } }");
+        lexer::Lexer lexer("void g(){ { a = 1; } }");
         std::ostringstream out;
         TestParser parser(lexer, &out);
 
-        check(parser.parse_function_definition(), "嵌套花括号的函数体解析成功");
-        check(parser.at_end(), "嵌套函数体消费完所有单词");
+        check(parser.parse_function_definition(), "嵌套块语句的函数体解析成功");
+        check(parser.at_end(), "嵌套块语句函数体消费完所有单词");
     }
     {
         lexer::Lexer lexer("void main(){}");
@@ -592,6 +602,123 @@ int main() {
         std::ostringstream out;
         TestParser parser(lexer, &out);
         check(!parser.parse_expression(), "非法因子表达式解析失败");
+    }
+    {
+        lexer::Lexer lexer("a = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "赋值语句解析成功");
+        const std::string expected =
+            "IDENFR a\n"
+            "ASSIGN =\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "<赋值语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n";
+        check(out.str() == expected, "赋值语句与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("a[1] = 2;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "数组元素赋值解析成功");
+        check(out.str().find("RBRACK ]\nASSIGN =\nINTCON 2") != std::string::npos,
+              "数组下标后接赋值");
+    }
+    {
+        lexer::Lexer lexer("scanf(x);");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "读语句解析成功");
+        const std::string expected =
+            "SCANFTK scanf\n"
+            "LPARENT (\n"
+            "IDENFR x\n"
+            "RPARENT )\n"
+            "<读语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n";
+        check(out.str() == expected, "读语句输出正确");
+    }
+    {
+        lexer::Lexer lexer("printf(\"Hi\");");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "字符串写语句解析成功");
+        const std::string expected =
+            "PRINTFTK printf\n"
+            "LPARENT (\n"
+            "STRCON Hi\n"
+            "<字符串>\n"
+            "RPARENT )\n"
+            "<写语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n";
+        check(out.str() == expected, "字符串写语句输出正确");
+    }
+    {
+        lexer::Lexer lexer("printf(\"x\", 1);");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "字符串加表达式写语句解析成功");
+        check(out.str().find("STRCON x\n<字符串>\nCOMMA ,\nINTCON 1") !=
+                  std::string::npos,
+              "字符串与表达式之间输出逗号与表达式标记");
+    }
+    {
+        lexer::Lexer lexer("printf(1);");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "表达式写语句解析成功");
+        check(out.str().find("LPARENT (\nINTCON 1") != std::string::npos,
+              "表达式写语句直接解析表达式");
+    }
+    {
+        lexer::Lexer lexer("return;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "无表达式返回语句解析成功");
+        const std::string expected =
+            "RETURNTK return\n"
+            "<返回语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n";
+        check(out.str() == expected, "无表达式返回语句输出正确");
+    }
+    {
+        lexer::Lexer lexer("return(1);");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "带表达式返回语句解析成功");
+        check(out.str().find("<表达式>\nRPARENT )\n<返回语句>") != std::string::npos,
+              "返回表达式后输出右括号与返回语句标记");
+    }
+    {
+        lexer::Lexer lexer(";");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "空语句解析成功");
+        check(out.str() == "SEMICN ;\n<语句>\n", "空语句输出正确");
+    }
+    {
+        lexer::Lexer lexer("if (x) y = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "控制语句在 P2-8 阶段暂不支持");
     }
 
     if (failures == 0) {

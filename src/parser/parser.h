@@ -65,7 +65,12 @@ protected:
     bool parse_compound_statement();       // <复合语句>
     bool parse_statement_list();           // <语句列>
     bool parse_compound_statement_body();  // '{' <复合语句> '}'
-    bool skip_statement_temporarily();     // P2-8 前的语句占位
+
+    bool parse_statement();                // <语句>
+    bool parse_assignment_statement();     // <赋值语句>
+    bool parse_read_statement();           // <读语句>
+    bool parse_write_statement();          // <写语句>
+    bool parse_return_statement();         // <返回语句>
 
     bool parse_expression();               // <表达式>
     bool parse_term();                     // <项>
