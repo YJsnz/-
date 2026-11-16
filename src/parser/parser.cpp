@@ -303,10 +303,12 @@ bool Parser::parse_constant() {
         if (!parse_integer()) {
             return false;
         }
+        last_constant_type_ = semantic::DataType::Int;
     } else if (current().kind == lexer::TokenKind::CharConstant) {
         if (!parse_character()) {
             return false;
         }
+        last_constant_type_ = semantic::DataType::Char;
     } else {
         syntax_error(current(), "期望常量");
         return false;
@@ -363,26 +365,46 @@ bool Parser::parse_declarator(int& dimensions) {
     return ok_;
 }
 
-bool Parser::parse_variable_initializer(int dimensions) {
+bool Parser::parse_variable_initializer(int dimensions,
+                                        semantic::DataType element_type) {
     if (dimensions == 0) {
-        return parse_constant();
+        if (!parse_constant()) {
+            return false;
+        }
+        if (recovery_ && last_constant_type_ != semantic::DataType::Unknown &&
+            element_type != semantic::DataType::Unknown &&
+            last_constant_type_ != element_type) {
+            syntax_error('o', last_declarator_token_, "常量类型与变量类型不一致");
+        }
+        return ok_;
     }
 
     if (!expect(lexer::TokenKind::LBrace, "{")) {
         return false;
     }
 
-    auto parse_constant_list = [this](long long& count) -> bool {
+    bool type_matches = true;
+    auto note_type = [this, element_type, &type_matches]() {
+        if (last_constant_type_ != semantic::DataType::Unknown &&
+            element_type != semantic::DataType::Unknown &&
+            last_constant_type_ != element_type) {
+            type_matches = false;
+        }
+    };
+
+    auto parse_constant_list = [this, &note_type](long long& count) -> bool {
         count = 0;
         if (!parse_constant()) {
             return false;
         }
         ++count;
+        note_type();
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_constant()) {
                 return false;
             }
             ++count;
+            note_type();
         }
         return ok_;
     };
@@ -395,9 +417,14 @@ bool Parser::parse_variable_initializer(int dimensions) {
         if (!expect(lexer::TokenKind::RBrace, "}")) {
             return false;
         }
-        if (recovery_ && !last_dimensions_.empty() &&
-            count != last_dimensions_[0]) {
-            syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+        if (recovery_) {
+            if (!last_dimensions_.empty() && count != last_dimensions_[0]) {
+                syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+            }
+            if (!type_matches) {
+                syntax_error('o', last_declarator_token_,
+                             "常量类型与数组元素类型不一致");
+            }
         }
         return ok_;
     }
@@ -440,12 +467,18 @@ bool Parser::parse_variable_initializer(int dimensions) {
     if (!expect(lexer::TokenKind::RBrace, "}")) {
         return false;
     }
-    if (recovery_ && last_dimensions_.size() >= 2) {
-        if (rows != last_dimensions_[0]) {
-            count_matches = false;
+    if (recovery_) {
+        if (last_dimensions_.size() >= 2) {
+            if (rows != last_dimensions_[0]) {
+                count_matches = false;
+            }
+            if (!count_matches) {
+                syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+            }
         }
-        if (!count_matches) {
-            syntax_error('n', last_declarator_token_, "数组初始化元素个数不匹配");
+        if (!type_matches) {
+            syntax_error('o', last_declarator_token_,
+                         "常量类型与数组元素类型不一致");
         }
     }
     return ok_;
@@ -468,7 +501,7 @@ bool Parser::parse_variable_definition() {
 
     if (current().kind == lexer::TokenKind::Assign) {
         advance();  // '='
-        if (!parse_variable_initializer(dimensions)) {
+        if (!parse_variable_initializer(dimensions, type)) {
             return false;
         }
         marker("变量定义及初始化");
@@ -1389,15 +1422,22 @@ bool Parser::parse_switch_statement() {
     if (!parse_expression()) {
         return false;
     }
+    const semantic::DataType switch_type = last_expression_type_;
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
     if (!expect(lexer::TokenKind::LBrace, "{")) {
         return false;
     }
-    if (!parse_case_table()) {
+
+    const semantic::DataType saved_switch_type = switch_expression_type_;
+    switch_expression_type_ = switch_type;
+    const bool table_ok = parse_case_table();
+    switch_expression_type_ = saved_switch_type;
+    if (!table_ok) {
         return false;
     }
+
     if (!parse_default_clause()) {
         return false;
     }
@@ -1426,9 +1466,15 @@ bool Parser::parse_case_table() {
 }
 
 bool Parser::parse_case_clause() {
+    const lexer::Token case_token = current();
     advance();  // case
     if (!parse_constant()) {
         return false;
+    }
+    if (recovery_ && last_constant_type_ != semantic::DataType::Unknown &&
+        switch_expression_type_ != semantic::DataType::Unknown &&
+        last_constant_type_ != switch_expression_type_) {
+        syntax_error('o', case_token, "case 常量类型与 switch 表达式不一致");
     }
     if (!expect(lexer::TokenKind::Colon, "冒号 :")) {
         return false;

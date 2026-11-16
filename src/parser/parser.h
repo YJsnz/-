@@ -59,7 +59,8 @@ protected:
     bool parse_variable_definition();   // <变量定义>
     bool parse_type_identifier();       // <类型标识符>（不输出成分名）
     bool parse_declarator(int& dimensions);
-    bool parse_variable_initializer(int dimensions);
+    bool parse_variable_initializer(int dimensions,
+                                    semantic::DataType element_type);
     bool can_start_variable();
 
     bool parse_declaration_header();       // <声明头部>
@@ -121,6 +122,8 @@ private:
     semantic::DataType last_term_type_ = semantic::DataType::Unknown;
     semantic::DataType last_factor_type_ = semantic::DataType::Unknown;
     semantic::DataType last_call_return_type_ = semantic::DataType::Unknown;
+    semantic::DataType last_constant_type_ = semantic::DataType::Unknown;
+    semantic::DataType switch_expression_type_ = semantic::DataType::Unknown;
     lexer::Token last_declarator_token_;
     std::vector<ParameterInfo> last_parameters_;
     std::vector<semantic::DataType> last_argument_types_;

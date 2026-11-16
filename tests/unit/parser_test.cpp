@@ -2135,6 +2135,94 @@ int main() {
         check(parsed, "字符数组初始化个数正确程序解析成功");
         check(!has_any_error(diagnostics, 'n'), "字符数组初始化个数正确不报 n");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x = 'a';\n}\n", parsed);
+        check(parsed, "int 变量初始化字符常量程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 2), "int 变量初始化字符常量报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c = 1;\n}\n", parsed);
+        check(parsed, "char 变量初始化整型常量程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 2), "char 变量初始化整型常量报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x = 1;\n}\n", parsed);
+        check(parsed, "int 变量初始化整型常量程序解析成功");
+        check(!has_any_error(diagnostics, 'o'), "int 变量初始化整型常量不报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c = 'a';\n}\n", parsed);
+        check(parsed, "char 变量初始化字符常量程序解析成功");
+        check(!has_any_error(diagnostics, 'o'), "char 变量初始化字符常量不报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2] = {1, 'a'};\nvoid main(){\n}\n", parsed);
+        check(parsed, "int 数组初始化含字符常量程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 1), "int 数组初始化含字符常量报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "char a[2] = {'a', 1};\nvoid main(){\n}\n", parsed);
+        check(parsed, "char 数组初始化含整型常量程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 1), "char 数组初始化含整型常量报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2] = {1, 2};\nvoid main(){\n}\n", parsed);
+        check(parsed, "int 数组初始化类型一致程序解析成功");
+        check(!has_any_error(diagnostics, 'o'), "int 数组类型一致不报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2] = {{1, 2}, {3, 'a'}};\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组初始化含字符常量程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 1), "二维数组初始化含字符常量报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 'a':\nx = 1;\ndefault:\nx = 2;\n}\n}\n",
+            parsed);
+        check(parsed, "int switch 使用字符 case 程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 4), "int switch 字符 case 报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nswitch (c) {\ncase 1:\nc = 'a';\ndefault:\nc = 'b';\n}\n}\n",
+            parsed);
+        check(parsed, "char switch 使用整型 case 程序仍可继续解析");
+        check(has_error(diagnostics, 'o', 4), "char switch 整型 case 报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 1:\nx = 1;\ndefault:\nx = 2;\n}\n}\n",
+            parsed);
+        check(parsed, "int switch 整型 case 程序解析成功");
+        check(!has_any_error(diagnostics, 'o'), "int switch 整型 case 不报 o");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nchar c;\nswitch (c) {\ncase 'a':\nc = 'b';\ndefault:\nc = 'c';\n}\n}\n",
+            parsed);
+        check(parsed, "char switch 字符 case 程序解析成功");
+        check(!has_any_error(diagnostics, 'o'), "char switch 字符 case 不报 o");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
