@@ -1,0 +1,6 @@
+int a;
+void main(){
+    scanf(a);
+    a = a * 2 + 1;
+    printf(a);
+}

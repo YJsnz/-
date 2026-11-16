@@ -4,9 +4,11 @@
 #include <iterator>
 #include <string>
 
+#include "codegen/code_generator.h"
 #include "common/error_reporter.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "pcode/interpreter.h"
 
 namespace {
 
@@ -14,18 +16,21 @@ struct Options {
     bool dump_lexer = false;
     bool dump_parser = false;
     bool check = false;
+    bool gen = false;
     bool show_help = false;
 };
 
 const char* const kInputFile = "testfile.txt";
 const char* const kOutputFile = "output.txt";
 const char* const kErrorFile = "error.txt";
+const char* const kPcodeResultFile = "pcoderesult.txt";
 
 void print_usage(std::ostream& os) {
     os << "用法：compiler [选项]\n"
        << "  --dump-lexer    输出词法分析结果到 output.txt\n"
        << "  --dump-parser   输出单词与语法成分到 output.txt\n"
        << "  --check         检查语法/语义错误，输出 error.txt\n"
+       << "  --gen           生成 PCODE 并解释执行，输出 pcoderesult.txt\n"
        << "  -h, --help      显示本帮助\n";
 }
 
@@ -38,6 +43,8 @@ bool parse_args(int argc, char** argv, Options& options, std::string& error) {
             options.dump_parser = true;
         } else if (arg == "--check") {
             options.check = true;
+        } else if (arg == "--gen") {
+            options.gen = true;
         } else if (arg == "-h" || arg == "--help") {
             options.show_help = true;
         } else {
@@ -84,6 +91,38 @@ int main(int argc, char** argv) {
     if (!read_source(kInputFile, source, error)) {
         std::cerr << "错误：" << error << "\n";
         return 1;
+    }
+
+    // 代码生成模式：生成 PCODE，解释执行，结果写 pcoderesult.txt。
+    if (options.gen) {
+        common::ErrorReporter errors;
+        lexer::Lexer lexer(source, [&errors](const common::Diagnostic& diagnostic) {
+            errors.report(diagnostic);
+        });
+        codegen::CodeGenerator generator;
+        parser::Parser parser(
+            lexer, nullptr,
+            [&errors](const common::Diagnostic& diagnostic) {
+                errors.report(diagnostic);
+            },
+            false, &generator);
+        if (!parser.parse_program() || errors.has_errors()) {
+            return 1;
+        }
+
+        std::ofstream result(kPcodeResultFile,
+                             std::ios::binary | std::ios::trunc);
+        if (!result) {
+            std::cerr << "错误：无法创建结果文件 " << kPcodeResultFile << "\n";
+            return 1;
+        }
+        pcode::Interpreter interpreter(generator.instructions(), std::cin,
+                                       result);
+        if (!interpreter.run()) {
+            std::cerr << "PCODE 执行错误：" << interpreter.error() << "\n";
+            return 1;
+        }
+        return 0;
     }
 
     // 错误检查模式：只写 error.txt，不输出词法/语法调试信息。

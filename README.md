@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验四（代码生成）进行中**：P4-1～P4-5 已完成，下一次开发：P4-6。
+**实验四（代码生成）进行中**：P4-1～P4-6 已完成，下一次开发：P4-7。
 
 > 当前 `--dump-parser` 已接通语法分析框架（暂时只输出单词）；`--dump-lexer` 仍输出实验一的词法结果。
 
@@ -33,6 +33,7 @@
 ./build/compiler --dump-lexer    # 输出词法结果到 output.txt
 ./build/compiler --dump-parser   # 输出单词与语法成分到 output.txt
 ./build/compiler --check         # 检查错误并写 error.txt
+./build/compiler --gen           # 生成 PCODE 并解释执行，写 pcoderesult.txt
 ```
 
 构建产物为 `build/compiler`，该目录已被 `.gitignore` 排除。
@@ -41,7 +42,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2～P3-19）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2～P3-19、P4-6）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -88,7 +89,8 @@ python tools/capture.py \
 │   ├── codegen/
 │   │   └── code_generator.h / .cpp # PCODE 指令收集（P4-3）
 │   └── pcode/
-│       └── pcode.h / .cpp         # PCODE 指令定义（P4-1）
+│       ├── pcode.h / .cpp         # PCODE 指令定义（P4-1）
+│       └── interpreter.h / .cpp   # 栈式解释器（P4-6）
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
 │   ├── cases/                     # 功能用例（当前含 P1 全部、P2-8、P2-13、P3-2～P3-19）
@@ -177,6 +179,7 @@ python tools/capture.py \
   - [P4-3 说明语句代码生成](docs/repro/P4-3_说明语句代码生成/README.md)
   - [P4-4 表达式与赋值](docs/repro/P4-4_表达式与赋值/README.md)
   - [P4-5 读写语句](docs/repro/P4-5_读写语句/README.md)
+  - [P4-6 解释器](docs/repro/P4-6_解释器/README.md)
 
 ## 开发约定（摘要）
 
@@ -190,5 +193,5 @@ python tools/capture.py \
 
 - 实验一（词法分析）已完成并打标签 `stage1`；
 - `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-11 词法用例；
-- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四 PCODE、语义分析、说明/表达式/读写代码生成完成（P4-1～P4-5），解释器待 P4-6；
+- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四 PCODE、代码生成与解释器完成（P4-1～P4-6），官方 exp4 验收待 P4-7；
 - PCODE 指令集尚未设计（P4-1）。
