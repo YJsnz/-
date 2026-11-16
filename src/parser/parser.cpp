@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "codegen/code_generator.h"
+
 namespace parser {
 namespace {
 
@@ -20,8 +22,13 @@ std::string to_lower_ascii(const std::string& text) {
 }  // namespace
 
 Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_error,
-               bool recovery)
-    : lexer_(lexer), out_(out), on_error_(std::move(on_error)), recovery_(recovery) {
+               bool recovery, codegen::CodeGenerator* generator)
+    : lexer_(lexer),
+      out_(out),
+      on_error_(std::move(on_error)),
+      recovery_(recovery),
+      semantic_(recovery || generator != nullptr),
+      generator_(generator) {
     fill_to(0);
     if (!recovery_ && current().kind == lexer::TokenKind::Error) {
         ok_ = false;  // 词法错误已由 Lexer 回调上报
@@ -60,11 +67,21 @@ int Parser::allocate_cells(int cells) {
     return base;
 }
 
+void Parser::emit_initializer(const semantic::Symbol& symbol) {
+    if (generator_ == nullptr || symbol.address < 0) {
+        return;
+    }
+    for (std::size_t i = 0; i < last_initializer_values_.size(); ++i) {
+        generator_->emit_lit(last_initializer_values_[i]);
+        generator_->emit_sto(symbol.address + static_cast<int>(i));
+    }
+}
+
 void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
                            semantic::DataType type, int dimensions,
                            const lexer::Token& where) {
-    if (!recovery_) {
-        return;  // 非检查模式不做语义记录
+    if (!semantic_) {
+        return;  // 非检查/代码生成模式不做语义记录
     }
     const bool pending_has_value = pending_has_value_;
     const long long pending_int_value = pending_int_value_;
@@ -101,8 +118,8 @@ void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
 
 const semantic::Symbol* Parser::lookup_or_report(const lexer::Token& token,
                                                  bool require_function) {
-    if (!recovery_) {
-        return nullptr;  // 非检查模式不做语义检查
+    if (!semantic_) {
+        return nullptr;  // 非检查/代码生成模式不做语义检查
     }
     const semantic::Symbol* symbol = symbols_.lookup(token.value);
     if (symbol == nullptr) {
@@ -138,6 +155,9 @@ bool Parser::parse_program() {
         while (ok_ && !at_end()) {
             advance();
         }
+    }
+    if (ok_ && generator_ != nullptr) {
+        generator_->emit_end();
     }
     return ok_;
 }
@@ -415,10 +435,21 @@ bool Parser::parse_declarator(int& dimensions) {
 
 bool Parser::parse_variable_initializer(int dimensions,
                                         semantic::DataType element_type) {
+    last_initializer_values_.clear();
+    auto record_value = [this]() {
+        if (last_constant_type_ == semantic::DataType::Int) {
+            last_initializer_values_.push_back(last_integer_value_);
+        } else if (last_constant_type_ == semantic::DataType::Char) {
+            last_initializer_values_.push_back(
+                static_cast<unsigned char>(last_char_value_));
+        }
+    };
+
     if (dimensions == 0) {
         if (!parse_constant()) {
             return false;
         }
+        record_value();
         if (recovery_ && last_constant_type_ != semantic::DataType::Unknown &&
             element_type != semantic::DataType::Unknown &&
             last_constant_type_ != element_type) {
@@ -440,18 +471,21 @@ bool Parser::parse_variable_initializer(int dimensions,
         }
     };
 
-    auto parse_constant_list = [this, &note_type](long long& count) -> bool {
+    auto parse_constant_list = [this, &note_type, &record_value](
+                                   long long& count) -> bool {
         count = 0;
         if (!parse_constant()) {
             return false;
         }
         ++count;
+        record_value();
         note_type();
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_constant()) {
                 return false;
             }
             ++count;
+            record_value();
             note_type();
         }
         return ok_;
@@ -549,8 +583,13 @@ bool Parser::parse_variable_definition() {
 
     if (current().kind == lexer::TokenKind::Assign) {
         advance();  // '='
+        const semantic::Symbol* symbol =
+            semantic_ ? symbols_.lookup(last_declarator_token_.value) : nullptr;
         if (!parse_variable_initializer(dimensions, type)) {
             return false;
+        }
+        if (generator_ != nullptr && symbol != nullptr) {
+            emit_initializer(*symbol);
         }
         marker("变量定义及初始化");
         marker("变量定义");

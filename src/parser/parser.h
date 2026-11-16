@@ -13,6 +13,10 @@
 #include "lexer/token.h"
 #include "semantic/symbol_table.h"
 
+namespace codegen {
+class CodeGenerator;
+}
+
 namespace parser {
 
 class Parser {
@@ -21,8 +25,10 @@ public:
 
     // out 为 nullptr 时不输出单词与成分名（仅做语法检查）。
     // recovery 为 true 时启用错误局部化：记录错误后继续解析。
+    // generator 非空时进入代码生成模式（自动启用语义分析）。
     Parser(lexer::Lexer& lexer, std::ostream* out,
-           SyntaxErrorCallback on_error = {}, bool recovery = false);
+           SyntaxErrorCallback on_error = {}, bool recovery = false,
+           codegen::CodeGenerator* generator = nullptr);
 
     bool parse_program();
 
@@ -106,6 +112,7 @@ private:
 
     void fill_to(std::size_t k);
     int allocate_cells(int cells);
+    void emit_initializer(const semantic::Symbol& symbol);
     void define_symbol(const std::string& name, semantic::SymbolKind kind,
                        semantic::DataType type, int dimensions,
                        const lexer::Token& where);
@@ -131,6 +138,7 @@ private:
     std::vector<ParameterInfo> last_parameters_;
     std::vector<semantic::DataType> last_argument_types_;
     std::vector<long long> last_dimensions_;
+    std::vector<long long> last_initializer_values_;
     int last_argument_count_ = 0;
     int next_address_ = 0;
     long long last_unsigned_value_ = 0;
@@ -142,7 +150,9 @@ private:
     bool eof_ = false;
     bool ok_ = true;
     bool recovery_ = false;
+    bool semantic_ = false;
     bool had_error_ = false;
+    codegen::CodeGenerator* generator_ = nullptr;
     lexer::Token previous_;
     bool has_previous_ = false;
     int last_error_line_ = -1;

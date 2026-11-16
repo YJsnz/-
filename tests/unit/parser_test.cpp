@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 
+#include "codegen/code_generator.h"
 #include "common/diagnostic.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "pcode/pcode.h"
 
 namespace {
 
@@ -33,6 +35,16 @@ std::vector<common::Diagnostic> collect_errors(const std::string& source,
         true);
     parsed = parser.parse_program();
     return diagnostics;
+}
+
+std::vector<pcode::Instruction> generate(const std::string& source,
+                                         bool& parsed) {
+    lexer::Lexer lexer(source);
+    std::ostringstream out;
+    codegen::CodeGenerator generator;
+    parser::Parser parser(lexer, &out, nullptr, false, &generator);
+    parsed = parser.parse_program();
+    return generator.instructions();
 }
 
 bool has_error(const std::vector<common::Diagnostic>& diagnostics, char code,
@@ -2292,6 +2304,67 @@ int main() {
         check(n != nullptr && n->kind == semantic::SymbolKind::Constant &&
                   n->has_value && n->int_value == -5,
               "整型常量值保留");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "const int N = 5;\nint a;\nchar c;\nvoid main(){\n}\n", parsed);
+        check(parsed, "无初始化说明程序解析成功");
+        check(code.size() == 1 && code[0].op == pcode::OpCode::End,
+              "无初始化的说明只生成 END");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int a = 3;\nvoid main(){\n}\n", parsed);
+        check(parsed, "简单变量初始化程序解析成功");
+        check(code.size() == 3 && code[0].op == pcode::OpCode::Lit &&
+                  code[0].operand == 3 && code[1].op == pcode::OpCode::Sto &&
+                  code[1].operand == 0 && code[2].op == pcode::OpCode::End,
+              "简单变量初始化生成 LIT 3 / STO 0 / END");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int a[2] = {1, 2};\nvoid main(){\n}\n", parsed);
+        check(parsed, "一维数组初始化程序解析成功");
+        check(code.size() == 5, "一维数组初始化指令数为 5");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 1 &&
+                  code[1].op == pcode::OpCode::Sto && code[1].operand == 0,
+              "a[0] 初始化生成 LIT 1 / STO 0");
+        check(code[2].op == pcode::OpCode::Lit && code[2].operand == 2 &&
+                  code[3].op == pcode::OpCode::Sto && code[3].operand == 1,
+              "a[1] 初始化生成 LIT 2 / STO 1");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "int m[2][2] = {{1, 2}, {3, 4}};\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组初始化程序解析成功");
+        check(code.size() == 9, "二维数组初始化指令数为 9");
+        check(code[4].operand == 3 && code[5].operand == 2 &&
+                  code[6].operand == 4 && code[7].operand == 3,
+              "二维数组按行优先写入地址 2、3");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("char c = 'a';\nvoid main(){\n}\n", parsed);
+        check(parsed, "字符变量初始化程序解析成功");
+        check(code.size() == 3 && code[0].op == pcode::OpCode::Lit &&
+                  code[0].operand == 97 && code[1].op == pcode::OpCode::Sto &&
+                  code[1].operand == 0,
+              "字符变量初始化生成 ASCII 码 LIT 97");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nint x = 4;\n}\n", parsed);
+        check(parsed, "局部变量初始化程序解析成功");
+        check(code.size() == 3 && code[0].op == pcode::OpCode::Lit &&
+                  code[0].operand == 4 && code[1].op == pcode::OpCode::Sto &&
+                  code[1].operand == 0,
+              "局部变量初始化生成 LIT 4 / STO 0");
     }
 
     if (failures == 0) {

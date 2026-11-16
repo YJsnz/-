@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验四（代码生成）进行中**：P4-1～P4-2 已完成，下一次开发：P4-3。
+**实验四（代码生成）进行中**：P4-1～P4-3 已完成，下一次开发：P4-4。
 
 > 当前 `--dump-parser` 已接通语法分析框架（暂时只输出单词）；`--dump-lexer` 仍输出实验一的词法结果。
 
@@ -85,6 +85,8 @@ python tools/capture.py \
 │   │   └── parser.h / .cpp        # 递归下降框架：预读、输出、语法错误回调
 │   ├── semantic/
 │   │   └── symbol_table.h / .cpp  # 作用域栈与符号表（P3-1）
+│   ├── codegen/
+│   │   └── code_generator.h / .cpp # PCODE 指令收集（P4-3）
 │   └── pcode/
 │       └── pcode.h / .cpp         # PCODE 指令定义（P4-1）
 ├── tests/
@@ -172,6 +174,7 @@ python tools/capture.py \
 - 实验四：
   - [P4-1 PCODE 设计](docs/repro/P4-1_PCODE设计/README.md)
   - [P4-2 语义分析](docs/repro/P4-2_语义分析/README.md)
+  - [P4-3 说明语句代码生成](docs/repro/P4-3_说明语句代码生成/README.md)
 
 ## 开发约定（摘要）
 
@@ -185,5 +188,5 @@ python tools/capture.py \
 
 - 实验一（词法分析）已完成并打标签 `stage1`；
 - `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-11 词法用例；
-- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四 PCODE 设计与语义分析完成（P4-1～P4-2），代码生成/解释器待 P4-3～P4-7；
+- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四 PCODE、语义分析与说明语句代码生成完成（P4-1～P4-3），表达式/读写/解释器待 P4-4～P4-7；
 - PCODE 指令集尚未设计（P4-1）。
