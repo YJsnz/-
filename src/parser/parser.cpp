@@ -748,14 +748,24 @@ bool Parser::parse_write_statement() {
 }
 
 bool Parser::parse_return_statement() {
+    const lexer::Token return_token = current();
     advance();  // return
+    bool has_parentheses = false;
     if (ok_ && match(lexer::TokenKind::LParen)) {
-        if (!parse_expression()) {
-            return false;
+        has_parentheses = true;
+        if (ok_ && current().kind != lexer::TokenKind::RParen) {
+            if (!parse_expression()) {
+                return false;
+            }
         }
         if (!expect(lexer::TokenKind::RParen, ")")) {
             return false;
         }
+    }
+
+    if (recovery_ && has_parentheses &&
+        current_return_type_ == semantic::DataType::Void) {
+        syntax_error('g', return_token, "无返回值函数中出现带括号的 return");
     }
 
     marker("返回语句");
@@ -809,11 +819,14 @@ bool Parser::parse_function_definition() {
             symbols_.leave_scope();
             return false;
         }
-        if (!parse_compound_statement_body()) {
-            symbols_.leave_scope();
+        const semantic::DataType saved_return_type = current_return_type_;
+        current_return_type_ = semantic::DataType::Void;
+        const bool body_ok = parse_compound_statement_body();
+        current_return_type_ = saved_return_type;
+        symbols_.leave_scope();
+        if (!body_ok) {
             return false;
         }
-        symbols_.leave_scope();
         marker("无返回值函数定义");
         return ok_;
     }
@@ -853,11 +866,14 @@ bool Parser::parse_function_definition() {
         symbols_.leave_scope();
         return false;
     }
-    if (!parse_compound_statement_body()) {
-        symbols_.leave_scope();
+    const semantic::DataType saved_return_type = current_return_type_;
+    current_return_type_ = return_type;
+    const bool body_ok = parse_compound_statement_body();
+    current_return_type_ = saved_return_type;
+    symbols_.leave_scope();
+    if (!body_ok) {
         return false;
     }
-    symbols_.leave_scope();
     marker("有返回值函数定义");
     return ok_;
 }
@@ -881,7 +897,10 @@ bool Parser::parse_main_function() {
     }
 
     symbols_.enter_scope();
+    const semantic::DataType saved_return_type = current_return_type_;
+    current_return_type_ = semantic::DataType::Void;
     const bool body_ok = parse_compound_statement_body();
+    current_return_type_ = saved_return_type;
     symbols_.leave_scope();
     if (!body_ok) {
         return false;

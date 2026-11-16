@@ -1653,6 +1653,49 @@ int main() {
         check(parsed, "字符间比较程序仍可继续解析");
         check(has_error(diagnostics, 'f', 3), "两个字符比较报 f");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nreturn(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "无返回值函数带表达式 return 程序仍可继续解析");
+        check(has_error(diagnostics, 'g', 2), "void 函数 return(表达式) 报 g");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nreturn();\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "无返回值函数空 return() 程序仍可继续解析");
+        check(has_error(diagnostics, 'g', 2), "void 函数 return() 报 g");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nreturn;\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "无返回值函数 return; 程序解析成功");
+        check(!has_any_error(diagnostics, 'g'), "void 函数 return; 不报 g");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "有返回值函数 return(1) 程序解析成功");
+        check(!has_any_error(diagnostics, 'g'), "有返回值函数不报 g");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nreturn(1);\n}\n", parsed);
+        check(parsed, "主函数带表达式 return 程序仍可继续解析");
+        check(has_error(diagnostics, 'g', 2), "主函数 return(表达式) 报 g");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nint x;\nif (x > 0) return(1);\n}\nvoid main(){\n}\n",
+            parsed);
+        check(parsed, "分支内带表达式 return 程序仍可继续解析");
+        check(has_error(diagnostics, 'g', 3), "void 函数分支内 return(表达式) 报 g");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
