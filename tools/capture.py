@@ -146,15 +146,13 @@ def wrap_line(text, font, max_w, draw):
     return lines
 
 
-def add_block(blocks, kind, text, content_w, draw, cont_prefix=""):
+def add_block(blocks, kind, text, content_w, draw, cont_kind=None):
     text = text.replace("\t", "    ")
     first = True
     for raw in text.splitlines() or [""]:
         f = font_for(raw, BODY_SIZE)
         for piece in wrap_line(raw, f, content_w, draw):
-            if not first and cont_prefix:
-                piece = cont_prefix + piece
-            blocks.append((kind, piece, f))
+            blocks.append((cont_kind if (not first and cont_kind) else kind, piece, f))
             first = False
 
 
@@ -258,7 +256,7 @@ def main():
 
     blocks = []
     for cmd, out, err, code in results:
-        add_block(blocks, "cmd", cmd, content_w, pd, cont_prefix="  ")
+        add_block(blocks, "cmd", cmd, content_w, pd, cont_kind="cmd_cont")
         if out:
             add_block(blocks, "out", out.rstrip("\n"), content_w, pd)
         if err.strip():
@@ -291,6 +289,8 @@ def main():
     for kind, text, f in blocks:
         if kind == "cmd":
             d.text((MARGIN, y), "$ ", font=f, fill=PROMPT)
+            d.text((MARGIN + d.textlength("$ ", font=f), y), text, font=f, fill=CMDC)
+        elif kind == "cmd_cont":
             d.text((MARGIN + d.textlength("$ ", font=f), y), text, font=f, fill=CMDC)
         elif kind == "out":
             d.text((MARGIN, y), text, font=f, fill=FG)
