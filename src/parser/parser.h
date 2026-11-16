@@ -37,6 +37,14 @@ protected:
     void marker(const std::string& name);
     void syntax_error(const lexer::Token& token, const std::string& message);
 
+    // 产生式（P2-2 起逐步实现）
+    bool parse_constant_declaration();  // <常量说明>
+    bool parse_constant_definition();   // <常量定义>
+    bool parse_integer();               // <整数>
+    bool parse_unsigned_integer();      // <无符号整数>
+    bool parse_character();             // <字符>（不输出成分名）
+    bool parse_constant();              // <常量>
+
 private:
     lexer::Lexer& lexer_;
     std::ostream* out_;

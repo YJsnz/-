@@ -13,10 +13,111 @@ Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_er
 }
 
 bool Parser::parse_program() {
-    // P2-1：框架阶段只消费单词，验证“消费时输出”的顺序。
+    if (current_.kind == lexer::TokenKind::KeywordConst) {
+        parse_constant_declaration();
+    }
+    // 临时：其余部分在后续 TODO 中实现，先消费以保证演示可跑通。
     while (ok_ && !at_end()) {
         advance();
     }
+    return ok_;
+}
+
+bool Parser::parse_constant_declaration() {
+    do {
+        if (!expect(lexer::TokenKind::KeywordConst, "const")) {
+            return false;
+        }
+        if (!parse_constant_definition()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+    } while (ok_ && current_.kind == lexer::TokenKind::KeywordConst);
+
+    marker("常量说明");
+    return ok_;
+}
+
+bool Parser::parse_constant_definition() {
+    if (match(lexer::TokenKind::KeywordInt)) {
+        do {
+            if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::Assign, "=")) {
+                return false;
+            }
+            if (!parse_integer()) {
+                return false;
+            }
+        } while (ok_ && match(lexer::TokenKind::Comma));
+        marker("常量定义");
+        return ok_;
+    }
+
+    if (match(lexer::TokenKind::KeywordChar)) {
+        do {
+            if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::Assign, "=")) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::CharConstant, "字符常量")) {
+                return false;
+            }
+        } while (ok_ && match(lexer::TokenKind::Comma));
+        marker("常量定义");
+        return ok_;
+    }
+
+    syntax_error(current_, "期望 int 或 char");
+    return false;
+}
+
+bool Parser::parse_integer() {
+    if (current_.kind == lexer::TokenKind::Plus ||
+        current_.kind == lexer::TokenKind::Minus) {
+        advance();
+    }
+    if (!parse_unsigned_integer()) {
+        return false;
+    }
+    marker("整数");
+    return ok_;
+}
+
+bool Parser::parse_unsigned_integer() {
+    if (!expect(lexer::TokenKind::IntConstant, "无符号整数")) {
+        return false;
+    }
+    marker("无符号整数");
+    return ok_;
+}
+
+bool Parser::parse_character() {
+    return expect(lexer::TokenKind::CharConstant, "字符常量");
+}
+
+bool Parser::parse_constant() {
+    if (current_.kind == lexer::TokenKind::IntConstant ||
+        current_.kind == lexer::TokenKind::Plus ||
+        current_.kind == lexer::TokenKind::Minus) {
+        if (!parse_integer()) {
+            return false;
+        }
+    } else if (current_.kind == lexer::TokenKind::CharConstant) {
+        if (!parse_character()) {
+            return false;
+        }
+    } else {
+        syntax_error(current_, "期望常量");
+        return false;
+    }
+
+    marker("常量");
     return ok_;
 }
 

@@ -28,6 +28,10 @@ public:
     using parser::Parser::expect;
     using parser::Parser::marker;
     using parser::Parser::match;
+    using parser::Parser::parse_constant;
+    using parser::Parser::parse_constant_declaration;
+    using parser::Parser::parse_constant_definition;
+    using parser::Parser::parse_integer;
 };
 
 }  // namespace
@@ -95,6 +99,84 @@ int main() {
         check(out.str().empty(), "词法错误时不输出单词");
         parser.marker("不应输出");
         check(out.str().empty(), "失败后 marker 不输出");
+    }
+    {
+        lexer::Lexer lexer("const int a = 1, b = -2; const char c = 'x';");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_constant_declaration(), "常量说明解析成功");
+        check(parser.at_end(), "常量说明消费完所有单词");
+        const std::string expected =
+            "CONSTTK const\n"
+            "INTTK int\n"
+            "IDENFR a\n"
+            "ASSIGN =\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "COMMA ,\n"
+            "IDENFR b\n"
+            "ASSIGN =\n"
+            "MINU -\n"
+            "INTCON 2\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<常量定义>\n"
+            "SEMICN ;\n"
+            "CONSTTK const\n"
+            "CHARTK char\n"
+            "IDENFR c\n"
+            "ASSIGN =\n"
+            "CHARCON x\n"
+            "<常量定义>\n"
+            "SEMICN ;\n"
+            "<常量说明>\n";
+        check(out.str() == expected, "常量说明与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("+5");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_integer(), "带 + 的整数解析成功");
+        check(out.str() == "PLUS +\nINTCON 5\n<无符号整数>\n<整数>\n",
+              "整数输出顺序正确");
+    }
+    {
+        lexer::Lexer lexer("'x'");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_constant(), "字符常量解析成功");
+        check(out.str() == "CHARCON x\n<常量>\n", "字符常量输出 <常量>");
+    }
+    {
+        lexer::Lexer lexer("const int = 1;");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          });
+
+        check(!parser.parse_constant_declaration(), "缺少标识符时解析失败");
+        check(!parser.ok(), "失败后 ok 为假");
+        check(diagnostics.size() == 1, "语法错误被上报");
+    }
+    {
+        lexer::Lexer lexer("const char c = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(!parser.parse_constant_declaration(), "char 常量类型不匹配时失败");
+    }
+    {
+        lexer::Lexer lexer(";");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(!parser.parse_constant(), "非常量输入解析失败");
     }
 
     if (failures == 0) {
