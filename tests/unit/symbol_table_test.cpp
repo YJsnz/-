@@ -85,6 +85,23 @@ int main() {
 
     check(semantic::SymbolTable::normalize("AbC_1") == "abc_1", "名字归一化为小写");
 
+    {
+        semantic::Symbol one;
+        one.address = 4;
+        one.dimension_sizes = {5};
+        check(semantic::element_address(one, 3) == 7, "一维数组元素地址正确");
+
+        semantic::Symbol two;
+        two.address = 10;
+        two.dimension_sizes = {2, 3};
+        check(semantic::element_address(two, 0, 0) == 10, "二维数组首元素地址正确");
+        check(semantic::element_address(two, 1, 2) == 15, "二维数组行优先地址正确");
+
+        semantic::Symbol plain;
+        plain.address = 2;
+        check(semantic::element_address(plain, 0) == -1, "非数组元素地址返回 -1");
+    }
+
     if (failures == 0) {
         std::cout << "全部通过\n";
         return 0;

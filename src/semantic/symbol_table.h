@@ -31,7 +31,12 @@ struct Symbol {
     long long int_value = 0;  // 常量整数值
     char char_value = 0;      // 常量字符值
     std::vector<DataType> parameter_types;  // 函数参数类型
+    int address = -1;                        // 变量/数组起始地址
+    std::vector<long long> dimension_sizes;  // 数组各维大小（行优先）
 };
+
+// 数组元素地址（行优先）；非数组或未分配地址返回 -1。
+int element_address(const Symbol& symbol, long long index1, long long index2 = 0);
 
 // 作用域按进入顺序保存；查找从最内层向外。
 class SymbolTable {

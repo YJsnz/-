@@ -30,6 +30,8 @@ public:
     bool at_end() const { return lookahead_.front().kind == lexer::TokenKind::End; }
     bool ok() const { return ok_; }
     bool had_error() const { return had_error_; }
+    const semantic::SymbolTable& symbols() const { return symbols_; }
+    int next_address() const { return next_address_; }
 
 protected:
     // 消费当前单词（输出后预读下一个）；失败返回 false。
@@ -103,6 +105,7 @@ private:
     };
 
     void fill_to(std::size_t k);
+    int allocate_cells(int cells);
     void define_symbol(const std::string& name, semantic::SymbolKind kind,
                        semantic::DataType type, int dimensions,
                        const lexer::Token& where);
@@ -129,6 +132,13 @@ private:
     std::vector<semantic::DataType> last_argument_types_;
     std::vector<long long> last_dimensions_;
     int last_argument_count_ = 0;
+    int next_address_ = 0;
+    long long last_unsigned_value_ = 0;
+    long long last_integer_value_ = 0;
+    char last_char_value_ = 0;
+    bool pending_has_value_ = false;
+    long long pending_int_value_ = 0;
+    char pending_char_value_ = 0;
     bool eof_ = false;
     bool ok_ = true;
     bool recovery_ = false;

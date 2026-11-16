@@ -2262,6 +2262,37 @@ int main() {
         check(parsed, "函数内 switch 缺 default 程序仍可继续解析");
         check(has_error(diagnostics, 'p', 6), "函数内 switch 缺 default 报 p");
     }
+    {
+        lexer::Lexer lexer(
+            "const int N = -5;\nint a;\nchar b;\nint m[2][3];\n"
+            "void main(){\nint c;\n}\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out, nullptr, true);
+        check(parser.parse_program(), "地址分配程序解析成功");
+
+        const semantic::Symbol* a = parser.symbols().lookup("a");
+        const semantic::Symbol* b = parser.symbols().lookup("b");
+        const semantic::Symbol* m = parser.symbols().lookup("m");
+        const semantic::Symbol* n = parser.symbols().lookup("N");
+        check(a != nullptr && a->address == 0 &&
+                  a->type == semantic::DataType::Int,
+              "全局 int 变量地址为 0");
+        check(b != nullptr && b->address == 1 &&
+                  b->type == semantic::DataType::Char,
+              "全局 char 变量地址为 1");
+        check(m != nullptr && m->address == 2 &&
+                  m->kind == semantic::SymbolKind::Array,
+              "二维数组起始地址为 2");
+        check(m != nullptr && m->dimension_sizes.size() == 2 &&
+                  m->dimension_sizes[0] == 2 && m->dimension_sizes[1] == 3,
+              "二维数组维度大小保留");
+        check(m != nullptr && semantic::element_address(*m, 1, 2) == 7,
+              "m[1][2] 行优先地址为 7");
+        check(parser.next_address() == 9, "局部变量分配后地址计数为 9");
+        check(n != nullptr && n->kind == semantic::SymbolKind::Constant &&
+                  n->has_value && n->int_value == -5,
+              "整型常量值保留");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

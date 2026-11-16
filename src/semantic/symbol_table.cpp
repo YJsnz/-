@@ -2,6 +2,17 @@
 
 namespace semantic {
 
+int element_address(const Symbol& symbol, long long index1, long long index2) {
+    if (symbol.address < 0 || symbol.dimension_sizes.empty()) {
+        return -1;
+    }
+    if (symbol.dimension_sizes.size() == 1) {
+        return symbol.address + static_cast<int>(index1);
+    }
+    return symbol.address +
+           static_cast<int>(index1 * symbol.dimension_sizes[1] + index2);
+}
+
 SymbolTable::SymbolTable() {
     scopes_.emplace_back();  // 全局作用域
 }

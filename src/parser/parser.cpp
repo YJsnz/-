@@ -54,17 +54,46 @@ const lexer::Token& Parser::peek_token(std::size_t k) {
     return lookahead_[k];
 }
 
+int Parser::allocate_cells(int cells) {
+    const int base = next_address_;
+    next_address_ += cells;
+    return base;
+}
+
 void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
                            semantic::DataType type, int dimensions,
                            const lexer::Token& where) {
     if (!recovery_) {
         return;  // 非检查模式不做语义记录
     }
+    const bool pending_has_value = pending_has_value_;
+    const long long pending_int_value = pending_int_value_;
+    const char pending_char_value = pending_char_value_;
+    pending_has_value_ = false;
+    pending_int_value_ = 0;
+    pending_char_value_ = 0;
+
     semantic::Symbol symbol;
     symbol.name = name;
     symbol.kind = kind;
     symbol.type = type;
     symbol.dimensions = dimensions;
+    if (kind == semantic::SymbolKind::Constant) {
+        symbol.has_value = pending_has_value;
+        symbol.int_value = pending_int_value;
+        symbol.char_value = pending_char_value;
+    } else if (kind == semantic::SymbolKind::Variable) {
+        symbol.address = allocate_cells(1);
+    } else if (kind == semantic::SymbolKind::Array) {
+        int cells = 1;
+        for (long long size : last_dimensions_) {
+            if (size > 0) {
+                cells *= static_cast<int>(size);
+            }
+        }
+        symbol.dimension_sizes = last_dimensions_;
+        symbol.address = allocate_cells(cells);
+    }
     if (!symbols_.insert(symbol)) {
         syntax_error('b', where, "名字重定义：" + name);
     }
@@ -239,6 +268,8 @@ bool Parser::parse_constant_definition() {
             if (!parse_integer()) {
                 return false;
             }
+            pending_has_value_ = true;
+            pending_int_value_ = last_integer_value_;
             define_symbol(name_token.value, semantic::SymbolKind::Constant,
                           semantic::DataType::Int, 0, name_token);
         } while (ok_ && match(lexer::TokenKind::Comma));
@@ -258,6 +289,9 @@ bool Parser::parse_constant_definition() {
             if (!expect(lexer::TokenKind::CharConstant, "字符常量")) {
                 return false;
             }
+            pending_has_value_ = true;
+            pending_char_value_ =
+                !previous_.lexeme.empty() ? previous_.lexeme[0] : 0;
             define_symbol(name_token.value, semantic::SymbolKind::Constant,
                           semantic::DataType::Char, 0, name_token);
         } while (ok_ && match(lexer::TokenKind::Comma));
@@ -273,13 +307,18 @@ bool Parser::parse_constant_definition() {
 }
 
 bool Parser::parse_integer() {
+    long long sign = 1;
     if (current().kind == lexer::TokenKind::Plus ||
         current().kind == lexer::TokenKind::Minus) {
+        if (current().kind == lexer::TokenKind::Minus) {
+            sign = -1;
+        }
         advance();
     }
     if (!parse_unsigned_integer()) {
         return false;
     }
+    last_integer_value_ = sign * last_unsigned_value_;
     marker("整数");
     return ok_;
 }
@@ -288,12 +327,21 @@ bool Parser::parse_unsigned_integer() {
     if (!expect(lexer::TokenKind::IntConstant, "无符号整数")) {
         return false;
     }
+    last_unsigned_value_ =
+        previous_.kind == lexer::TokenKind::IntConstant ? previous_.int_value : 0;
     marker("无符号整数");
     return ok_;
 }
 
 bool Parser::parse_character() {
-    return expect(lexer::TokenKind::CharConstant, "字符常量");
+    if (!expect(lexer::TokenKind::CharConstant, "字符常量")) {
+        return false;
+    }
+    last_char_value_ =
+        previous_.kind == lexer::TokenKind::CharConstant && !previous_.lexeme.empty()
+            ? previous_.lexeme[0]
+            : 0;
+    return ok_;
 }
 
 bool Parser::parse_constant() {
