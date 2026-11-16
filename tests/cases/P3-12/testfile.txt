@@ -1,0 +1,4 @@
+const int N = 1;
+void main(){
+    N = 2;
+}

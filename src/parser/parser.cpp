@@ -671,7 +671,11 @@ bool Parser::parse_assignment_statement() {
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
-    (void)lookup_or_report(name_token);
+    const semantic::Symbol* symbol = lookup_or_report(name_token);
+    if (recovery_ && symbol != nullptr &&
+        symbol->kind == semantic::SymbolKind::Constant) {
+        syntax_error('j', name_token, "不能改变常量的值：" + name_token.value);
+    }
 
     if (ok_ && match(lexer::TokenKind::LBracket)) {
         const lexer::Token bracket_token = previous_;
@@ -718,7 +722,11 @@ bool Parser::parse_read_statement() {
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
-    (void)lookup_or_report(name_token);
+    const semantic::Symbol* symbol = lookup_or_report(name_token);
+    if (recovery_ && symbol != nullptr &&
+        symbol->kind == semantic::SymbolKind::Constant) {
+        syntax_error('j', name_token, "不能修改常量：" + name_token.value);
+    }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }

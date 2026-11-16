@@ -1816,6 +1816,62 @@ int main() {
         check(parsed, "括号字符下标程序解析成功");
         check(!has_any_error(diagnostics, 'i'), "括号内字符视为整型，不报 i");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "const int N = 1;\nvoid main(){\nN = 2;\n}\n", parsed);
+        check(parsed, "常量赋值程序仍可继续解析");
+        check(has_error(diagnostics, 'j', 3), "给常量赋值报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "const int N = 1;\nvoid main(){\nscanf(N);\n}\n", parsed);
+        check(parsed, "常量读入程序仍可继续解析");
+        check(has_error(diagnostics, 'j', 3), "scanf 常量报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int N = 1;\nvoid main(){\nN = 2;\n}\n", parsed);
+        check(parsed, "变量赋值程序解析成功");
+        check(!has_any_error(diagnostics, 'j'), "变量赋值不报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int N = 1;\nvoid main(){\nscanf(N);\n}\n", parsed);
+        check(parsed, "变量读入程序解析成功");
+        check(!has_any_error(diagnostics, 'j'), "scanf 变量不报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "const char C = 'a';\nvoid main(){\nC = 'b';\n}\n", parsed);
+        check(parsed, "字符常量赋值程序仍可继续解析");
+        check(has_error(diagnostics, 'j', 3), "给字符常量赋值报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "const int N = 1;\nvoid main(){\nint x;\nx = N + 1;\n}\n", parsed);
+        check(parsed, "常量参与表达式程序解析成功");
+        check(!has_any_error(diagnostics, 'j'), "常量参与表达式不报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nconst int N = 1;\nN = 2;\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "局部常量赋值程序仍可继续解析");
+        check(has_error(diagnostics, 'j', 3), "局部常量赋值报 j");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\na[0] = 1;\n}\n", parsed);
+        check(parsed, "数组元素赋值程序解析成功");
+        check(!has_any_error(diagnostics, 'j'), "数组元素赋值不报 j");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
