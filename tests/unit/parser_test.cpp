@@ -2016,6 +2016,69 @@ int main() {
         check(parsed, "括号完整程序解析成功");
         check(!has_any_error(diagnostics, 'l'), "括号完整不报 l");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2;\nvoid main(){\n}\n", parsed);
+        check(parsed, "一维数组定义缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 1), "一维数组定义缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2[3];\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组第一维缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 1), "二维数组第一维缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][3;\nvoid main(){\n}\n", parsed);
+        check(parsed, "二维数组第二维缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 1), "二维数组第二维缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint a[2;\n}\n", parsed);
+        check(parsed, "局部数组定义缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 2), "局部数组定义缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\nint x;\nx = a[1;\n}\n", parsed);
+        check(parsed, "数组元素表达式缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 4), "数组元素表达式缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2];\nvoid main(){\na[1 = 2;\n}\n", parsed);
+        check(parsed, "数组元素赋值缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 3), "数组元素赋值缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2];\nvoid main(){\nint x;\nx = a[1][2;\n}\n", parsed);
+        check(parsed, "二维数组元素第二维缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 4), "二维数组元素第二维缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2 = {1, 2};\nvoid main(){\n}\n", parsed);
+        check(parsed, "数组初始化缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'm', 1), "数组初始化缺右中括号报 m");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int a[2][2];\nvoid main(){\nint x;\nx = a[1][1];\n}\n", parsed);
+        check(parsed, "数组下标完整程序解析成功");
+        check(!has_any_error(diagnostics, 'm'), "数组下标完整不报 m");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
