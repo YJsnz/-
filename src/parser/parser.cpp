@@ -400,25 +400,77 @@ bool Parser::parse_parameter_list() {
 }
 
 bool Parser::parse_compound_statement_body() {
-    // 临时：P2-6 将替换为 <复合语句> 的真实解析。
     if (!expect(lexer::TokenKind::LBrace, "{")) {
         return false;
     }
+    if (!parse_compound_statement()) {
+        return false;
+    }
+    return expect(lexer::TokenKind::RBrace, "右花括号 }");
+}
 
-    int depth = 1;
-    while (ok_ && depth > 0) {
-        if (at_end()) {
-            syntax_error(current(), "复合语句缺少右花括号 }");
+bool Parser::parse_compound_statement() {
+    if (current().kind == lexer::TokenKind::KeywordConst) {
+        parse_constant_declaration();
+    }
+    if (ok_ && can_start_variable()) {
+        parse_variable_declaration();
+    }
+    if (ok_ && !parse_statement_list()) {
+        return false;
+    }
+
+    marker("复合语句");
+    return ok_;
+}
+
+bool Parser::parse_statement_list() {
+    while (ok_ && !at_end() && current().kind != lexer::TokenKind::RBrace) {
+        if (!skip_statement_temporarily()) {
             return false;
+        }
+    }
+    if (!ok_) {
+        return false;
+    }
+
+    marker("语句列");
+    return true;
+}
+
+bool Parser::skip_statement_temporarily() {
+    // P2-8 起替换为真实语句解析；当前按分号/花括号粗略跳过一个语句。
+    if (current().kind == lexer::TokenKind::LBrace) {
+        int depth = 0;
+        while (ok_ && !at_end()) {
+            if (current().kind == lexer::TokenKind::LBrace) {
+                ++depth;
+            } else if (current().kind == lexer::TokenKind::RBrace) {
+                --depth;
+            }
+            advance();
+            if (depth == 0) {
+                break;
+            }
+        }
+        return ok_;
+    }
+
+    int depth = 0;
+    while (ok_ && !at_end()) {
+        if (depth == 0 && (current().kind == lexer::TokenKind::Semicolon ||
+                           current().kind == lexer::TokenKind::RBrace)) {
+            break;
         }
         if (current().kind == lexer::TokenKind::LBrace) {
             ++depth;
         } else if (current().kind == lexer::TokenKind::RBrace) {
             --depth;
         }
-        if (!advance()) {
-            return false;
-        }
+        advance();
+    }
+    if (ok_ && current().kind == lexer::TokenKind::Semicolon) {
+        advance();
     }
     return ok_;
 }

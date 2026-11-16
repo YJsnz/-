@@ -1,0 +1,110 @@
+# P2-6 复合语句与语句列验证
+# 时间: 2026-11-16 12:00:02
+# 提交: b689650
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 20
+[PASS] 空主函数程序解析成功
+[PASS] 主函数后到达文件尾
+[PASS] 主函数与程序标记顺序正确
+[PASS] 完整程序骨架解析成功
+[PASS] 常量说明在变量说明之前
+[PASS] 变量说明在函数定义之前
+[PASS] 函数定义在主函数之前
+[PASS] 程序标记位于最后
+[PASS] 缺少主函数时解析失败
+[PASS] 主函数后的多余内容被拒绝
+[PASS] 主函数带参数时解析失败
+[PASS] 复合语句内常量/变量说明解析成功
+[PASS] 复合语句内常量说明位于体首
+[PASS] 常量说明后接变量说明
+[PASS] 变量说明后输出语句列与复合语句
+[PASS] 多条语句的复合语句解析成功
+[PASS] 语句列与复合语句位于右花括号前
+[PASS] 嵌套块语句的复合语句解析成功
+[PASS] 嵌套块语句消费完所有单词
+全部通过
+[exit 0]
+
+$ cd tests/tmp/P2-6-demo && ../../../build/compiler --dump-parser && cat output.txt
+INTTK int
+IDENFR f
+<声明头部>
+LPARENT (
+INTTK int
+IDENFR n
+<参数表>
+RPARENT )
+LBRACE {
+CONSTTK const
+INTTK int
+IDENFR k
+ASSIGN =
+INTCON 1
+<无符号整数>
+<整数>
+<常量定义>
+SEMICN ;
+<常量说明>
+INTTK int
+IDENFR x
+<变量定义无初始化>
+<变量定义>
+SEMICN ;
+<变量说明>
+IDENFR x
+ASSIGN =
+IDENFR n
+PLUS +
+IDENFR k
+SEMICN ;
+RETURNTK return
+LPARENT (
+IDENFR x
+RPARENT )
+SEMICN ;
+<语句列>
+<复合语句>
+RBRACE }
+<有返回值函数定义>
+VOIDTK void
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+<语句列>
+<复合语句>
+RBRACE }
+<主函数>
+<程序>
+[exit 0]
+
+$ wc -l tests/tmp/P2-6-demo/output.txt
+50 tests/tmp/P2-6-demo/output.txt
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+----------------------------------------
+共 9 个用例：9 通过，0 失败
+[exit 0]

@@ -296,6 +296,8 @@ int main() {
             "<参数表>\n"
             "RPARENT )\n"
             "LBRACE {\n"
+            "<语句列>\n"
+            "<复合语句>\n"
             "RBRACE }\n"
             "<有返回值函数定义>\n";
         check(out.str() == expected, "函数定义与成分名顺序正确");
@@ -313,6 +315,8 @@ int main() {
             "<参数表>\n"
             "RPARENT )\n"
             "LBRACE {\n"
+            "<语句列>\n"
+            "<复合语句>\n"
             "RBRACE }\n"
             "<无返回值函数定义>\n";
         check(out.str() == expected, "无返回值函数输出正确（空参数表）");
@@ -338,6 +342,8 @@ int main() {
             "IDENFR a\n"
             "RPARENT )\n"
             "SEMICN ;\n"
+            "<语句列>\n"
+            "<复合语句>\n"
             "RBRACE }\n"
             "<有返回值函数定义>\n";
         check(out.str() == expected, "函数体单词按序输出");
@@ -391,6 +397,8 @@ int main() {
             "LPARENT (\n"
             "RPARENT )\n"
             "LBRACE {\n"
+            "<语句列>\n"
+            "<复合语句>\n"
             "RBRACE }\n"
             "<主函数>\n"
             "<程序>\n";
@@ -435,6 +443,38 @@ int main() {
         std::ostringstream out;
         TestParser parser(lexer, &out);
         check(!parser.parse_program(), "主函数带参数时解析失败");
+    }
+    {
+        lexer::Lexer lexer("void g(){ const int a=1; int x; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "复合语句内常量/变量说明解析成功");
+        const std::string text = out.str();
+        check(text.find("LBRACE {\nCONSTTK const") != std::string::npos,
+              "复合语句内常量说明位于体首");
+        check(text.find("<常量说明>\nINTTK int\nIDENFR x") != std::string::npos,
+              "常量说明后接变量说明");
+        check(text.find("<变量说明>\n<语句列>\n<复合语句>\nRBRACE }") !=
+                  std::string::npos,
+              "变量说明后输出语句列与复合语句");
+    }
+    {
+        lexer::Lexer lexer("void g(){ a = 1; b = 2; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "多条语句的复合语句解析成功");
+        check(out.str().find("<语句列>\n<复合语句>\nRBRACE }") != std::string::npos,
+              "语句列与复合语句位于右花括号前");
+    }
+    {
+        lexer::Lexer lexer("void g(){ { a = 1; } }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_function_definition(), "嵌套块语句的复合语句解析成功");
+        check(parser.at_end(), "嵌套块语句消费完所有单词");
     }
 
     if (failures == 0) {
