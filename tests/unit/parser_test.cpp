@@ -1872,6 +1872,71 @@ int main() {
         check(parsed, "数组元素赋值程序解析成功");
         check(!has_any_error(diagnostics, 'j'), "数组元素赋值不报 j");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nscanf(x)\nx = 1;\n}\n", parsed);
+        check(parsed, "读语句缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 3), "读语句缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nprintf(x)\nx = 1;\n}\n", parsed);
+        check(parsed, "写语句缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 3), "写语句缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn(1)\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "返回语句缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 2), "返回语句缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void g(){\n}\nvoid main(){\ng()\n}\n", parsed);
+        check(parsed, "函数调用缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 4), "函数调用缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint i;\nfor (i = 0 i < 3; i = i + 1) {\n}\n}\n",
+            parsed);
+        check(parsed, "for 初始化缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 3), "for 初始化缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint i;\nfor (i = 0; i < 3 i = i + 1) {\n}\n}\n",
+            parsed);
+        check(parsed, "for 条件缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 3), "for 条件缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "const int A = 1\nint x;\nvoid main(){\n}\n", parsed);
+        check(parsed, "常量定义缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 1), "常量定义缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x\nx = 1;\n}\n", parsed);
+        check(parsed, "变量定义缺分号程序仍可继续解析");
+        check(has_error(diagnostics, 'k', 2), "变量定义缺分号报 k");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nx = 1;\n}\n", parsed);
+        check(parsed, "分号完整程序解析成功");
+        check(!has_any_error(diagnostics, 'k'), "分号完整不报 k");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
