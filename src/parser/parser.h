@@ -115,8 +115,13 @@ private:
     std::map<std::string, bool> function_returns_;  // 已定义函数：名字(小写) -> 是否返回值
     semantic::SymbolTable symbols_;
     semantic::DataType last_type_ = semantic::DataType::Unknown;
+    semantic::DataType last_expression_type_ = semantic::DataType::Unknown;
+    semantic::DataType last_term_type_ = semantic::DataType::Unknown;
+    semantic::DataType last_factor_type_ = semantic::DataType::Unknown;
+    semantic::DataType last_call_return_type_ = semantic::DataType::Unknown;
     lexer::Token last_declarator_token_;
     std::vector<ParameterInfo> last_parameters_;
+    std::vector<semantic::DataType> last_argument_types_;
     int last_argument_count_ = 0;
     bool eof_ = false;
     bool ok_ = true;

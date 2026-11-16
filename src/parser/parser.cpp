@@ -894,20 +894,26 @@ bool Parser::parse_main_function() {
 // ---------------------------------------------------------------- 表达式
 
 bool Parser::parse_expression() {
+    bool has_unary_sign = false;
     if (current().kind == lexer::TokenKind::Plus ||
         current().kind == lexer::TokenKind::Minus) {
         advance();
+        has_unary_sign = true;
     }
     if (!parse_term()) {
         return false;
     }
+    semantic::DataType type =
+        has_unary_sign ? semantic::DataType::Int : last_term_type_;
     while (ok_ && (current().kind == lexer::TokenKind::Plus ||
                    current().kind == lexer::TokenKind::Minus)) {
         advance();
         if (!parse_term()) {
             return false;
         }
+        type = semantic::DataType::Int;
     }
+    last_expression_type_ = type;
     marker("表达式");
     return ok_;
 }
@@ -916,13 +922,16 @@ bool Parser::parse_term() {
     if (!parse_factor()) {
         return false;
     }
+    semantic::DataType type = last_factor_type_;
     while (ok_ && (current().kind == lexer::TokenKind::Star ||
                    current().kind == lexer::TokenKind::Slash)) {
         advance();
         if (!parse_factor()) {
             return false;
         }
+        type = semantic::DataType::Int;
     }
+    last_term_type_ = type;
     marker("项");
     return ok_;
 }
@@ -933,12 +942,17 @@ bool Parser::parse_factor() {
     if (current().kind == lexer::TokenKind::Identifier &&
         peek_token(1).kind == lexer::TokenKind::LParen) {
         ok = parse_function_call();
+        if (ok) {
+            last_factor_type_ = last_call_return_type_;
+        }
     } else if (current().kind == lexer::TokenKind::Identifier) {
         const lexer::Token name_token = current();
         if (!advance()) {
             return false;
         }
-        (void)lookup_or_report(name_token);
+        const semantic::Symbol* symbol = lookup_or_report(name_token);
+        last_factor_type_ = symbol != nullptr ? symbol->type
+                                             : semantic::DataType::Unknown;
         if (ok_ && current().kind == lexer::TokenKind::LBracket) {
             advance();
             if (!parse_expression()) {
@@ -962,14 +976,24 @@ bool Parser::parse_factor() {
                current().kind == lexer::TokenKind::Plus ||
                current().kind == lexer::TokenKind::Minus) {
         ok = parse_integer();
+        if (ok) {
+            last_factor_type_ = semantic::DataType::Int;
+        }
     } else if (current().kind == lexer::TokenKind::CharConstant) {
         ok = parse_character();
+        if (ok) {
+            last_factor_type_ = semantic::DataType::Char;
+        }
     } else if (current().kind == lexer::TokenKind::LParen) {
         advance();
         if (!parse_expression()) {
             return false;
         }
         ok = expect(lexer::TokenKind::RParen, "右小括号 )");
+        if (ok) {
+            // 括号内的字符型也视为参与运算，结果为整型。
+            last_factor_type_ = semantic::DataType::Int;
+        }
     } else {
         syntax_error(current(), "期望因子");
         if (recovery_ && current().kind != lexer::TokenKind::End) {
@@ -994,16 +1018,19 @@ bool Parser::parse_factor() {
 
 bool Parser::parse_value_parameter_list() {
     last_argument_count_ = 0;
+    last_argument_types_.clear();
     if (current().kind != lexer::TokenKind::RParen) {
         if (!parse_expression()) {
             return false;
         }
         ++last_argument_count_;
+        last_argument_types_.push_back(last_expression_type_);
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_expression()) {
                 return false;
             }
             ++last_argument_count_;
+            last_argument_types_.push_back(last_expression_type_);
         }
     }
 
@@ -1017,15 +1044,33 @@ bool Parser::parse_function_call() {
         return false;
     }
     const semantic::Symbol* symbol = lookup_or_report(name_token, true);
+    last_call_return_type_ =
+        symbol != nullptr ? symbol->type : semantic::DataType::Unknown;
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
     if (!parse_value_parameter_list()) {
         return false;
     }
-    if (recovery_ && symbol != nullptr &&
-        last_argument_count_ != static_cast<int>(symbol->parameter_types.size())) {
-        syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
+    if (recovery_ && symbol != nullptr) {
+        if (last_argument_count_ !=
+            static_cast<int>(symbol->parameter_types.size())) {
+            syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
+        } else {
+            bool mismatch = false;
+            for (std::size_t i = 0; i < last_argument_types_.size(); ++i) {
+                const semantic::DataType actual = last_argument_types_[i];
+                const semantic::DataType expected = symbol->parameter_types[i];
+                if (actual != semantic::DataType::Unknown &&
+                    expected != semantic::DataType::Unknown && actual != expected) {
+                    mismatch = true;
+                }
+            }
+            if (mismatch) {
+                syntax_error('e', name_token,
+                             "函数参数类型不匹配：" + name_token.value);
+            }
+        }
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
@@ -1047,9 +1092,25 @@ bool Parser::parse_call_statement(bool returns_value) {
     if (!parse_value_parameter_list()) {
         return false;
     }
-    if (recovery_ && symbol != nullptr &&
-        last_argument_count_ != static_cast<int>(symbol->parameter_types.size())) {
-        syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
+    if (recovery_ && symbol != nullptr) {
+        if (last_argument_count_ !=
+            static_cast<int>(symbol->parameter_types.size())) {
+            syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
+        } else {
+            bool mismatch = false;
+            for (std::size_t i = 0; i < last_argument_types_.size(); ++i) {
+                const semantic::DataType actual = last_argument_types_[i];
+                const semantic::DataType expected = symbol->parameter_types[i];
+                if (actual != semantic::DataType::Unknown &&
+                    expected != semantic::DataType::Unknown && actual != expected) {
+                    mismatch = true;
+                }
+            }
+            if (mismatch) {
+                syntax_error('e', name_token,
+                             "函数参数类型不匹配：" + name_token.value);
+            }
+        }
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;

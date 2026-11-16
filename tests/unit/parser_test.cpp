@@ -1396,6 +1396,172 @@ int main() {
         }
         check(found, "表达式内函数调用实参不匹配报 d");
     }
+    {
+        lexer::Lexer lexer(
+            "void g(int a){\n"
+            "}\n"
+            "void main(){\n"
+            "g('x');\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "字符实参传整型形参程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e' && d.line == 4) {
+                found = true;
+            }
+        }
+        check(found, "字符实参传整型形参报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(char a){\n"
+            "}\n"
+            "void main(){\n"
+            "g(1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "整型实参传字符形参程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e' && d.line == 4) {
+                found = true;
+            }
+        }
+        check(found, "整型实参传字符形参报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(int a){\n"
+            "}\n"
+            "void main(){\n"
+            "g(1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "整型实参传整型形参程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e') {
+                found = true;
+            }
+        }
+        check(!found, "整型实参传整型形参不报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(char a){\n"
+            "}\n"
+            "void main(){\n"
+            "g('x');\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "字符实参传字符形参程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e') {
+                found = true;
+            }
+        }
+        check(!found, "字符实参传字符形参不报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(char a){\n"
+            "}\n"
+            "void main(){\n"
+            "g('x' + 1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "字符参与运算后解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e' && d.line == 4) {
+                found = true;
+            }
+        }
+        check(found, "字符参与运算结果为整型并报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(int a){\n"
+            "}\n"
+            "void main(){\n"
+            "char c;\n"
+            "g((c));\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "括号字符表达式程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e') {
+                found = true;
+            }
+        }
+        check(!found, "括号内字符视为整型，不报 e");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(int a){\n"
+            "}\n"
+            "void main(){\n"
+            "g();\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "参数个数错误程序仍可继续解析");
+        bool has_e = false;
+        bool has_d = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'e') {
+                has_e = true;
+            }
+            if (d.code == 'd') {
+                has_d = true;
+            }
+        }
+        check(has_d && !has_e, "参数个数错误优先报 d，不报 e");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
