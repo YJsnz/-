@@ -18,7 +18,7 @@
 | 验收 | 以指导书官方样例的输出逐行一致为准 |
 | 仓库 | `https://github.com/YJsnz/-.git`，主分支 `main` |
 
-**当前进度：阶段 0 进行中（P0-1～P0-5 已完成）。下一次开发：P0-6。**
+**当前进度：阶段 0 进行中（P0-1～P0-6 已完成）。下一次开发：P0-7。**
 
 ---
 
@@ -166,7 +166,7 @@
 - [x] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
 - [x] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
 - [x] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）
-- [ ] **P0-6** 官方样例入库：`tests/official/exp1..exp4/`（按指导书样例与输出）
+- [x] **P0-6** 官方样例入库：`tests/official/exp1..exp4/`（按指导书样例与输出）
 - [ ] **P0-7** `README.md`：项目说明、构建/运行方式、目录导航、当前进度
 
 **阶段 0 门禁**：`build.sh` 能编译一个 hello 程序；`capture.py` 能生成一张中文正常的 PNG；`verify.sh` 能跑通一个假用例。
@@ -481,7 +481,8 @@ tests/cases/P1-3_identifier/
 
 - 任何功能完成后必须跑 `verify.sh all`；
 - 旧用例的 `expect.txt` 不允许为了“通过”而修改；如指导书要求变化，需单独提交并说明；
-- 官方样例是最终标准，自测用例不得与官方样例冲突。
+- 官方样例是最终标准，自测用例不得与官方样例冲突；
+- 官方样例（`tests/official/`）只读；接入回归时把 `testfile.txt` 与期望输出复制到 `tests/cases/` 的用例目录，不修改原文件。
 
 ---
 

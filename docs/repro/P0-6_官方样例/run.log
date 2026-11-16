@@ -1,0 +1,49 @@
+# P0-6 官方样例入库校验
+# 时间: 2026-11-16 10:58:42
+# 提交: 4b65b88
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ find tests/official -type f | sort
+tests/official/exp1/output.txt
+tests/official/exp1/testfile.txt
+tests/official/exp2/output.txt
+tests/official/exp2/testfile.txt
+tests/official/exp3/error.txt
+tests/official/exp3/testfile.txt
+tests/official/exp4/pcoderesult.txt
+tests/official/exp4/stdin.txt
+tests/official/exp4/testfile.txt
+tests/official/README.md
+[exit 0]
+
+$ diff -u tests/official/exp1/testfile.txt tests/official/exp2/testfile.txt && echo "exp1/exp2 输入一致"
+exp1/exp2 输入一致
+[exit 0]
+
+$ grep -v "^<" tests/official/exp2/output.txt | diff -u tests/official/exp1/output.txt - && echo "词法序列一致"
+词法序列一致
+[exit 0]
+
+$ wc -l tests/official/exp*/*.txt
+  66 tests/official/exp1/output.txt
+  12 tests/official/exp1/testfile.txt
+ 119 tests/official/exp2/output.txt
+  12 tests/official/exp2/testfile.txt
+   2 tests/official/exp3/error.txt
+  12 tests/official/exp3/testfile.txt
+   2 tests/official/exp4/pcoderesult.txt
+   1 tests/official/exp4/stdin.txt
+   6 tests/official/exp4/testfile.txt
+ 232 total
+[exit 0]
+
+$ cat tests/official/exp3/error.txt
+2 a
+6 k
+[exit 0]
+
+$ cat tests/official/exp4/pcoderesult.txt
+Hello World
+1837
+[exit 0]
