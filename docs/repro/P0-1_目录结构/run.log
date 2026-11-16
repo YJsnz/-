@@ -1,0 +1,41 @@
+# P0-1 目录结构与忽略规则验证
+# 时间: 2026-11-16 10:44:50
+# 提交: c896cd0
+# 目录: D:\Code\编译原理
+
+$ find . -maxdepth 3 -name .git -prune -o -type d -print | sort
+.
+./build
+./docs
+./docs/repro
+./docs/repro/P0-1_目录结构
+./scripts
+./src
+./tests
+./tests/tmp
+./tools
+[exit 0]
+
+$ find . -maxdepth 2 -type f -not -path "./.git/*" | sort
+./.gitattributes
+./.gitignore
+./2026年编译原理实验指导书.pdf
+./AGENTS.md
+./scripts/.gitkeep
+./src/.gitkeep
+./tests/.gitkeep
+./tools/.gitkeep
+[exit 0]
+
+$ git check-ignore -v build tests/tmp
+.gitignore:2:build/	build
+.gitignore:17:tests/tmp/	tests/tmp
+[exit 0]
+
+$ git status --short
+?? docs/
+?? scripts/
+?? src/
+?? tests/
+?? tools/
+[exit 0]
