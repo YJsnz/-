@@ -1,0 +1,32 @@
+# P0-3 验证脚本自检与模式验证
+# 时间: 2026-11-16 10:49:26
+# 提交: dfa213b
+# 目录: D:\Code\编译原理
+
+$ ./scripts/verify.sh selftest
+== 自检 1/2：正常用例应判 PASS ==
+[PASS] SE1-fake
+== 自检 2/2：错误期望应判 FAIL ==
+[FAIL] SE1-fake  输出与 expect.txt 不一致（output.txt）
+        --- expected/output.txt
+        +++ actual/output.txt
+        @@ -1 +1,2 @@
+        -WRONG
+        +HELLO
+        +WORLD
+自检通过：PASS/FAIL 判定正常
+[exit 0]
+
+$ ./scripts/verify.sh all
+没有找到用例（tests/cases）
+[exit 0]
+
+$ ./scripts/verify.sh stage1
+没有找到用例（tests/cases）
+[exit 0]
+
+$ ./scripts/verify.sh nope
+
+[stderr]
+错误：用例不存在：tests/cases/nope
+[exit 2]

@@ -18,7 +18,7 @@
 | 验收 | 以指导书官方样例的输出逐行一致为准 |
 | 仓库 | `https://github.com/YJsnz/-.git`，主分支 `main` |
 
-**当前进度：阶段 0 进行中（P0-1、P0-2 已完成）。下一次开发：P0-3。**
+**当前进度：阶段 0 进行中（P0-1～P0-3 已完成）。下一次开发：P0-4。**
 
 ---
 
@@ -163,7 +163,7 @@
 
 - [x] **P0-1** 建立目录结构与 `.gitignore`（`src/ tests/ docs/ scripts/ tools/ build/`）
 - [x] **P0-2** `scripts/build.sh`：`g++ -std=c++17` 编译全部源文件，输出 `build/compiler`
-- [ ] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
+- [x] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
 - [ ] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
 - [ ] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）
 - [ ] **P0-6** 官方样例入库：`tests/official/exp1..exp4/`（按指导书样例与输出）
@@ -448,8 +448,11 @@ Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>
 tests/cases/P1-3_identifier/
 ├── testfile.txt     # 输入
 ├── expect.txt       # 该阶段输出文件的期望内容
-└── stdin.txt        # 可选，实验四
+├── stdin.txt        # 可选，实验四
+└── meta.conf        # 可选，KEY=VALUE：OUTPUT / ARGS / STDIN / ALLOW_NONZERO
 ```
+
+结果文件默认按 ID 前缀推断：`P1-*`/`P2-*` → `output.txt`，`P3-*` → `error.txt`，`P4-*` → `pcoderesult.txt`。
 
 ### 9.2 验证脚本行为
 
@@ -463,7 +466,11 @@ tests/cases/P1-3_identifier/
 
 `scripts/verify.sh all`：遍历全部用例；任一失败则退出码非 0。
 
-`scripts/verify.sh stageN`：只跑该阶段用例。
+`scripts/verify.sh stageN`：只跑 `P<N>-*` 用例。
+
+`scripts/verify.sh selftest`：用临时假编译器自检 PASS/FAIL 判定，不依赖真实编译器。
+
+设置 `COMPILER=<路径>` 可指定编译器并跳过构建（用于调试脚本本身）。
 
 ### 9.3 回归纪律
 
