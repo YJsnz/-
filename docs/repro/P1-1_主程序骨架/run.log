@@ -1,0 +1,35 @@
+# P1-1 主程序骨架验证
+# 时间: 2026-11-16 11:04:28
+# 提交: 0c63c52
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 1
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/verify.sh P1-1
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 1
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ wc -c tests/tmp/P1-1/output.txt
+0 tests/tmp/P1-1/output.txt
+[exit 0]
+
+$ cd tests/tmp/P1-1-off && ../../../build/compiler && if [ ! -e output.txt ]; then echo "默认不生成 output.txt"; fi
+默认不生成 output.txt
+[exit 0]
+
+$ cd tests/tmp/P1-1-error && ../../../build/compiler 2>&1; echo "退出码=$?"
+错误：无法打开输入文件 testfile.txt
+退出码=1
+[exit 0]

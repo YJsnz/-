@@ -13,9 +13,9 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验一（词法分析）尚未开始**，下一次开发：P1-1。
+**实验一（词法分析）进行中**：P1-1 主程序骨架已完成，下一次开发：P1-2。
 
-> 当前 `build/compiler` 只是占位入口，运行输出 `compiler skeleton: build OK (P1-1 will add lexer)`。
+> `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下创建 `output.txt`；词法分析尚未实现，结果文件为空。
 
 ## 快速开始
 
@@ -38,7 +38,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前还没有正式用例）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1-1）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ```
 
@@ -67,7 +67,7 @@ python tools/capture.py \
 ├── tools/
 │   └── capture.py                 # 运行命令并生成截图 + 原始日志
 ├── src/
-│   └── main.cpp                   # 入口（当前为占位桩，P1-1 替换）
+│   └── main.cpp                   # 主程序骨架（P1-1：读入、开关、输出文件）
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
 │   ├── cases/                     # 功能用例（P1-10 起添加）
@@ -102,6 +102,8 @@ python tools/capture.py \
   - [P0-5 复现文档模板](docs/repro/P0-5_复现文档模板/README.md)
   - [P0-6 官方样例](docs/repro/P0-6_官方样例/README.md)
   - [P0-7 项目说明](docs/repro/P0-7_项目说明/README.md)
+- 实验一：
+  - [P1-1 主程序骨架](docs/repro/P1-1_主程序骨架/README.md)
 
 ## 开发约定（摘要）
 
@@ -113,6 +115,6 @@ python tools/capture.py \
 
 ## 已知限制
 
-- 词法分析、语法分析、错误处理、代码生成均尚未实现；
-- `tests/cases/` 目前为空，`verify.sh all` 只验证脚本自身；
+- 词法分析尚未实现（P1-2 起）；语法分析、错误处理、代码生成也尚未实现；
+- `tests/cases/` 目前只有 P1-1 骨架用例，`verify.sh all` 运行该用例；
 - PCODE 指令集尚未设计（P4-1）。
