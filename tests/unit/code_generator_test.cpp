@@ -52,9 +52,19 @@ int main() {
               generator.instructions()[4].text == "Hello",
           "WRT_STR 指令生成正确");
 
-    generator.emit_end();
+    generator.emit_ldi();
     check(generator.instructions().size() == 6 &&
-              generator.instructions()[5].op == pcode::OpCode::End,
+              generator.instructions()[5].op == pcode::OpCode::Ldi,
+          "LDI 指令生成正确");
+
+    generator.emit_sti();
+    check(generator.instructions().size() == 7 &&
+              generator.instructions()[6].op == pcode::OpCode::Sti,
+          "STI 指令生成正确");
+
+    generator.emit_end();
+    check(generator.instructions().size() == 8 &&
+              generator.instructions()[7].op == pcode::OpCode::End,
           "END 指令生成正确");
 
     generator.clear();

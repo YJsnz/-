@@ -18,6 +18,8 @@ LOD   a          把 mem[a] 压栈
 STO   a          弹出栈顶并写入 mem[a]
 OPR   code       执行运算/输入输出操作（见下表）
 WRT_STR "text"   原样输出字符串 text
+LDI              弹出地址 a，把 mem[a] 压栈
+STI              弹出值 v、地址 a，令 mem[a] = v
 END              结束程序
 ```
 
@@ -61,6 +63,10 @@ END              结束程序
 - 常量引用直接生成 `LIT`；变量引用生成 `LOD`。
 - 赋值：先生成右侧表达式，再 `STO` 到左侧变量地址。
 - 字符常量生成其 ASCII 码的 `LIT`。
+- 数组元素：
+  - 一维 `a[i]`：`LIT base` → i 的代码 → `OPR ADD` → `LDI`；
+  - 二维 `m[i][j]`：`LIT base` → i 的代码 → `LIT cols` → `OPR MUL` → `OPR ADD` → j 的代码 → `OPR ADD` → `LDI`；
+  - 数组元素赋值：先按上述规则生成地址，再生成右侧表达式，最后 `STI`。
 
 ## 6. 示例
 

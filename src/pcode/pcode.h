@@ -11,6 +11,8 @@ enum class OpCode {
     Sto,      // 存变量
     Opr,      // 运算/输入输出
     WrtStr,   // 输出字符串
+    Ldi,      // 间接取数：弹出地址，压入 mem[地址]
+    Sti,      // 间接存数：弹出值、地址，写入 mem[地址]
     End,      // 结束
 };
 

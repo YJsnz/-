@@ -16,6 +16,8 @@ public:
     void emit_sto(int address);
     void emit_opr(pcode::OprCode code);
     void emit_wrt_str(const std::string& text);
+    void emit_ldi();
+    void emit_sti();
     void emit_end();
 
     const std::vector<pcode::Instruction>& instructions() const { return code_; }

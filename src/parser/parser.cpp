@@ -834,10 +834,26 @@ bool Parser::parse_assignment_statement() {
         syntax_error('j', name_token, "不能改变常量的值：" + name_token.value);
     }
 
+    bool is_element = false;
+    bool base_pushed = false;
+
     if (ok_ && match(lexer::TokenKind::LBracket)) {
+        is_element = true;
         const lexer::Token bracket_token = previous_;
+        if (generator_ != nullptr && symbol != nullptr &&
+            symbol->kind == semantic::SymbolKind::Array) {
+            generator_->emit_lit(symbol->address);
+            base_pushed = true;
+        }
         if (!parse_expression()) {
             return false;
+        }
+        if (base_pushed) {
+            if (symbol->dimension_sizes.size() >= 2) {
+                generator_->emit_lit(symbol->dimension_sizes[1]);
+                generator_->emit_opr(pcode::OprCode::Mul);
+            }
+            generator_->emit_opr(pcode::OprCode::Add);
         }
         if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
             syntax_error('i', bracket_token, "数组下标只能为整型");
@@ -849,6 +865,9 @@ bool Parser::parse_assignment_statement() {
             const lexer::Token second_bracket_token = previous_;
             if (!parse_expression()) {
                 return false;
+            }
+            if (base_pushed) {
+                generator_->emit_opr(pcode::OprCode::Add);
             }
             if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
                 syntax_error('i', second_bracket_token, "数组下标只能为整型");
@@ -864,6 +883,15 @@ bool Parser::parse_assignment_statement() {
     }
     if (!parse_expression()) {
         return false;
+    }
+
+    if (generator_ != nullptr && symbol != nullptr) {
+        if (is_element && base_pushed) {
+            generator_->emit_sti();
+        } else if (!is_element &&
+                   symbol->kind == semantic::SymbolKind::Variable) {
+            generator_->emit_sto(symbol->address);
+        }
     }
 
     marker("赋值语句");
@@ -1115,6 +1143,7 @@ bool Parser::parse_main_function() {
 
 bool Parser::parse_expression() {
     bool has_unary_sign = false;
+    const lexer::TokenKind unary_kind = current().kind;
     if (current().kind == lexer::TokenKind::Plus ||
         current().kind == lexer::TokenKind::Minus) {
         advance();
@@ -1123,13 +1152,23 @@ bool Parser::parse_expression() {
     if (!parse_term()) {
         return false;
     }
+    if (generator_ != nullptr && has_unary_sign &&
+        unary_kind == lexer::TokenKind::Minus) {
+        generator_->emit_opr(pcode::OprCode::Neg);
+    }
     semantic::DataType type =
         has_unary_sign ? semantic::DataType::Int : last_term_type_;
     while (ok_ && (current().kind == lexer::TokenKind::Plus ||
                    current().kind == lexer::TokenKind::Minus)) {
+        const lexer::TokenKind op = current().kind;
         advance();
         if (!parse_term()) {
             return false;
+        }
+        if (generator_ != nullptr) {
+            generator_->emit_opr(op == lexer::TokenKind::Plus
+                                     ? pcode::OprCode::Add
+                                     : pcode::OprCode::Sub);
         }
         type = semantic::DataType::Int;
     }
@@ -1145,9 +1184,15 @@ bool Parser::parse_term() {
     semantic::DataType type = last_factor_type_;
     while (ok_ && (current().kind == lexer::TokenKind::Star ||
                    current().kind == lexer::TokenKind::Slash)) {
+        const lexer::TokenKind op = current().kind;
         advance();
         if (!parse_factor()) {
             return false;
+        }
+        if (generator_ != nullptr) {
+            generator_->emit_opr(op == lexer::TokenKind::Star
+                                     ? pcode::OprCode::Mul
+                                     : pcode::OprCode::Div);
         }
         type = semantic::DataType::Int;
     }
@@ -1173,11 +1218,40 @@ bool Parser::parse_factor() {
         const semantic::Symbol* symbol = lookup_or_report(name_token);
         last_factor_type_ = symbol != nullptr ? symbol->type
                                              : semantic::DataType::Unknown;
-        if (ok_ && current().kind == lexer::TokenKind::LBracket) {
+
+        const bool has_bracket =
+            ok_ && current().kind == lexer::TokenKind::LBracket;
+        bool base_pushed = false;
+        if (generator_ != nullptr && symbol != nullptr) {
+            if (!has_bracket) {
+                if (symbol->kind == semantic::SymbolKind::Constant) {
+                    if (symbol->type == semantic::DataType::Char) {
+                        generator_->emit_lit(
+                            static_cast<unsigned char>(symbol->char_value));
+                    } else {
+                        generator_->emit_lit(symbol->int_value);
+                    }
+                } else if (symbol->kind == semantic::SymbolKind::Variable) {
+                    generator_->emit_lod(symbol->address);
+                }
+            } else if (symbol->kind == semantic::SymbolKind::Array) {
+                generator_->emit_lit(symbol->address);
+                base_pushed = true;
+            }
+        }
+
+        if (has_bracket) {
             const lexer::Token bracket_token = current();
             advance();
             if (!parse_expression()) {
                 return false;
+            }
+            if (base_pushed) {
+                if (symbol->dimension_sizes.size() >= 2) {
+                    generator_->emit_lit(symbol->dimension_sizes[1]);
+                    generator_->emit_opr(pcode::OprCode::Mul);
+                }
+                generator_->emit_opr(pcode::OprCode::Add);
             }
             if (recovery_ && last_expression_type_ == semantic::DataType::Char) {
                 syntax_error('i', bracket_token, "数组下标只能为整型");
@@ -1191,6 +1265,9 @@ bool Parser::parse_factor() {
                 if (!parse_expression()) {
                     return false;
                 }
+                if (base_pushed) {
+                    generator_->emit_opr(pcode::OprCode::Add);
+                }
                 if (recovery_ &&
                     last_expression_type_ == semantic::DataType::Char) {
                     syntax_error('i', second_bracket_token, "数组下标只能为整型");
@@ -1198,6 +1275,9 @@ bool Parser::parse_factor() {
                 if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
                     return false;
                 }
+            }
+            if (base_pushed) {
+                generator_->emit_ldi();
             }
         }
         ok = ok_;
@@ -1207,11 +1287,18 @@ bool Parser::parse_factor() {
         ok = parse_integer();
         if (ok) {
             last_factor_type_ = semantic::DataType::Int;
+            if (generator_ != nullptr) {
+                generator_->emit_lit(last_integer_value_);
+            }
         }
     } else if (current().kind == lexer::TokenKind::CharConstant) {
         ok = parse_character();
         if (ok) {
             last_factor_type_ = semantic::DataType::Char;
+            if (generator_ != nullptr) {
+                generator_->emit_lit(
+                    static_cast<unsigned char>(last_char_value_));
+            }
         }
     } else if (current().kind == lexer::TokenKind::LParen) {
         advance();

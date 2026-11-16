@@ -14,6 +14,10 @@ const char* opcode_name(OpCode op) {
             return "OPR";
         case OpCode::WrtStr:
             return "WRT_STR";
+        case OpCode::Ldi:
+            return "LDI";
+        case OpCode::Sti:
+            return "STI";
         case OpCode::End:
             return "END";
     }

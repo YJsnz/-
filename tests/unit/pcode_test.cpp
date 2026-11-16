@@ -28,6 +28,8 @@ int main() {
     check(std::string(pcode::opcode_name(OpCode::Opr)) == "OPR", "OPR 名称");
     check(std::string(pcode::opcode_name(OpCode::WrtStr)) == "WRT_STR",
           "WRT_STR 名称");
+    check(std::string(pcode::opcode_name(OpCode::Ldi)) == "LDI", "LDI 名称");
+    check(std::string(pcode::opcode_name(OpCode::Sti)) == "STI", "STI 名称");
     check(std::string(pcode::opcode_name(OpCode::End)) == "END", "END 名称");
 
     check(std::string(pcode::opr_name(OprCode::Add)) == "ADD", "ADD 名称");

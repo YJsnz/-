@@ -2366,6 +2366,132 @@ int main() {
                   code[1].operand == 0,
               "局部变量初始化生成 LIT 4 / STO 0");
     }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int x;\nvoid main(){\nx = 2 + 3 * 4;\n}\n", parsed);
+        check(parsed && code.size() == 7, "表达式赋值指令数为 7");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 2 &&
+                  code[1].op == pcode::OpCode::Lit && code[1].operand == 3 &&
+                  code[2].op == pcode::OpCode::Lit && code[2].operand == 4,
+              "表达式操作数按后序生成");
+        check(code[3].op == pcode::OpCode::Opr &&
+                  code[3].operand ==
+                      static_cast<int>(pcode::OprCode::Mul) &&
+                  code[4].op == pcode::OpCode::Opr &&
+                  code[4].operand == static_cast<int>(pcode::OprCode::Add),
+              "乘加运算生成正确");
+        check(code[5].op == pcode::OpCode::Sto && code[5].operand == 0 &&
+                  code[6].op == pcode::OpCode::End,
+              "赋值生成 STO 0");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int x;\nvoid main(){\nx = -5;\n}\n", parsed);
+        check(parsed && code.size() == 4, "负号赋值指令数为 4");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 5 &&
+                  code[1].op == pcode::OpCode::Opr &&
+                  code[1].operand == static_cast<int>(pcode::OprCode::Neg),
+              "负号生成 LIT 5 / NEG");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int x;\nvoid main(){\nx = 8 / 2;\n}\n", parsed);
+        check(parsed && code.size() == 5, "除法赋值指令数为 5");
+        check(code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand == static_cast<int>(pcode::OprCode::Div),
+              "除法生成 DIV");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int x;\nvoid main(){\nx = (2 + 3) * 4;\n}\n", parsed);
+        check(parsed && code.size() == 7, "括号表达式指令数为 7");
+        check(code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand == static_cast<int>(pcode::OprCode::Add) &&
+                  code[4].op == pcode::OpCode::Opr &&
+                  code[4].operand == static_cast<int>(pcode::OprCode::Mul),
+              "括号优先：先加后乘");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "const int N = 5;\nint x;\nvoid main(){\nx = N + 1;\n}\n", parsed);
+        check(parsed && code.size() == 5, "常量参与运算指令数为 5");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 5 &&
+                  code[1].op == pcode::OpCode::Lit && code[1].operand == 1,
+              "常量引用生成 LIT 5");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "int a[2];\nvoid main(){\nint x;\nx = a[1];\n}\n", parsed);
+        check(parsed && code.size() == 6, "一维数组读取指令数为 6");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 0 &&
+                  code[1].op == pcode::OpCode::Lit && code[1].operand == 1 &&
+                  code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand == static_cast<int>(pcode::OprCode::Add) &&
+                  code[3].op == pcode::OpCode::Ldi,
+              "一维数组读取生成 基址+下标 / LDI");
+        check(code[4].op == pcode::OpCode::Sto && code[4].operand == 2,
+              "数组元素存入局部变量地址 2");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "int a[2];\nvoid main(){\na[1] = 7;\n}\n", parsed);
+        check(parsed && code.size() == 6, "一维数组赋值指令数为 6");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 0 &&
+                  code[1].op == pcode::OpCode::Lit && code[1].operand == 1 &&
+                  code[2].op == pcode::OpCode::Opr && code[3].op == pcode::OpCode::Lit &&
+                  code[3].operand == 7 && code[4].op == pcode::OpCode::Sti,
+              "一维数组赋值生成 地址 / LIT 7 / STI");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "int m[2][2];\nvoid main(){\nint x;\nx = m[1][0];\n}\n", parsed);
+        check(parsed && code.size() == 10, "二维数组读取指令数为 10");
+        check(code[0].operand == 0 && code[1].operand == 1 &&
+                  code[2].operand == 2 && code[3].op == pcode::OpCode::Opr &&
+                  code[3].operand == static_cast<int>(pcode::OprCode::Mul) &&
+                  code[4].op == pcode::OpCode::Opr &&
+                  code[4].operand == static_cast<int>(pcode::OprCode::Add) &&
+                  code[5].operand == 0 && code[6].op == pcode::OpCode::Opr &&
+                  code[6].operand == static_cast<int>(pcode::OprCode::Add) &&
+                  code[7].op == pcode::OpCode::Ldi,
+              "二维数组地址 = base + i*cols + j / LDI");
+        check(code[8].op == pcode::OpCode::Sto && code[8].operand == 4,
+              "二维数组元素存入局部变量地址 4");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "int m[2][2];\nvoid main(){\nm[1][0] = 7;\n}\n", parsed);
+        check(parsed && code.size() == 10, "二维数组赋值指令数为 10");
+        check(code[7].op == pcode::OpCode::Lit && code[7].operand == 7 &&
+                  code[8].op == pcode::OpCode::Sti,
+              "二维数组赋值生成 LIT 7 / STI");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "const char C = 'a';\nint x;\nvoid main(){\nx = C + 1;\n}\n", parsed);
+        check(parsed && code.size() == 5, "字符常量运算指令数为 5");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 97,
+              "字符常量引用生成 ASCII 码 LIT 97");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("int a;\nint x;\nvoid main(){\nx = a;\n}\n", parsed);
+        check(parsed && code.size() == 3, "变量读取指令数为 3");
+        check(code[0].op == pcode::OpCode::Lod && code[0].operand == 0 &&
+                  code[1].op == pcode::OpCode::Sto && code[1].operand == 1,
+              "变量读取生成 LOD 0 / STO 1");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

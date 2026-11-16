@@ -41,6 +41,18 @@ void CodeGenerator::emit_wrt_str(const std::string& text) {
     code_.push_back(instruction);
 }
 
+void CodeGenerator::emit_ldi() {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Ldi;
+    code_.push_back(instruction);
+}
+
+void CodeGenerator::emit_sti() {
+    pcode::Instruction instruction;
+    instruction.op = pcode::OpCode::Sti;
+    code_.push_back(instruction);
+}
+
 void CodeGenerator::emit_end() {
     pcode::Instruction instruction;
     instruction.op = pcode::OpCode::End;
