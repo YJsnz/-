@@ -1,0 +1,41 @@
+# P0-4 截图工具验证
+# 时间: 2026-11-16 10:54:00
+# 提交: e2b7c32
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ python tools/capture.py --help | head -12
+usage: capture.py [-h] --title TITLE --out OUT [--log LOG] [--cmd CMD]
+                  [--show-file SHOW_FILE] [--cwd CWD] [--timeout TIMEOUT]
+                  [--width WIDTH] [--font FONT] [--cjk-font CJK_FONT]
+
+运行命令并渲染 PNG 截图 + 原始日志
+
+options:
+  -h, --help            show this help message and exit
+  --title TITLE         截图标题
+  --out OUT             输出 PNG 路径
+  --log LOG             原始日志路径（默认按 AGENTS.md 规则推导）
+  --cmd CMD             要执行的命令，可重复
+[exit 0]
+
+$ python tools/capture.py --title "内嵌演示" --cmd "echo 渲染演示 token INTCON 001" --cmd "git log --oneline -1" --out tests/tmp/p04_demo/screenshots/01-demo.png
+PNG -> tests/tmp/p04_demo/screenshots/01-demo.png
+LOG -> D:\Code\编译原理\tests\tmp\p04_demo\run.log
+完成：2 条命令，0 条非零退出
+[exit 0]
+
+$ ls -lh tests/tmp/p04_demo/screenshots/01-demo.png tests/tmp/p04_demo/run.log
+-rw-r--r-- 1 geqingyu 197121 292 11月 16 10:54 tests/tmp/p04_demo/run.log
+-rw-r--r-- 1 geqingyu 197121 32K 11月 16 10:54 tests/tmp/p04_demo/screenshots/01-demo.png
+[exit 0]
+
+$ head -n 7 tests/tmp/p04_demo/run.log
+# 内嵌演示
+# 时间: 2026-11-16 10:54:02
+# 提交: e2b7c32
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ echo 渲染演示 token INTCON 001
+[exit 0]

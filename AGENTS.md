@@ -18,7 +18,7 @@
 | 验收 | 以指导书官方样例的输出逐行一致为准 |
 | 仓库 | `https://github.com/YJsnz/-.git`，主分支 `main` |
 
-**当前进度：阶段 0 进行中（P0-1～P0-3 已完成）。下一次开发：P0-4。**
+**当前进度：阶段 0 进行中（P0-1～P0-4 已完成）。下一次开发：P0-5。**
 
 ---
 
@@ -164,7 +164,7 @@
 - [x] **P0-1** 建立目录结构与 `.gitignore`（`src/ tests/ docs/ scripts/ tools/ build/`）
 - [x] **P0-2** `scripts/build.sh`：`g++ -std=c++17` 编译全部源文件，输出 `build/compiler`
 - [x] **P0-3** `scripts/verify.sh`：支持 `verify.sh <ID>`、`verify.sh all`、`verify.sh stageN`
-- [ ] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
+- [x] **P0-4** `tools/capture.py`：执行命令 → 渲染 PNG（标题/时间/提交号/命令/输出/退出码），并写 `run.log`
 - [ ] **P0-5** 复现文档模板 `docs/repro/_TEMPLATE/README.md`（§7.4）
 - [ ] **P0-6** 官方样例入库：`tests/official/exp1..exp4/`（按指导书样例与输出）
 - [ ] **P0-7** `README.md`：项目说明、构建/运行方式、目录导航、当前进度
@@ -347,8 +347,13 @@ docs/repro/P1-3_标识符与关键字/
 python tools/capture.py \
   --title "P1-3 标识符与关键字" \
   --cmd "scripts/verify.sh P1-3" \
+  --show-file tests/tmp/P1-3/output.txt \
   --out docs/repro/P1-3_标识符与关键字/screenshots/01-verify.png
 ```
+
+`--show-file` 可重复，用于在截图中展示 `output.txt` / `error.txt` / `pcoderesult.txt` 的内容。未指定 `--log` 时，若 `--out` 位于 `screenshots/` 下，日志自动写到上一级的 `run.log`。
+
+工具退出码 `0` 只表示截图生成成功，不表示被执行的命令成功；命令退出码会写进图片与日志。
 
 ### 7.4 复现文档模板
 
