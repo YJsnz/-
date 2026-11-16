@@ -1,0 +1,65 @@
+# P2-1 语法分析框架验证
+# 时间: 2026-11-16 11:46:59
+# 提交: 3f41951
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/test_unit.sh parser
+编译 tests/unit/parser_test.cpp
+运行 build/unit/parser_test
+[PASS] 构造后已预读首个单词
+[PASS] 预读不输出
+[PASS] advance 成功
+[PASS] 消费时输出当前单词
+[PASS] advance 后预读下一个单词
+[PASS] marker 输出成分名
+[PASS] 第二个单词按序输出
+[PASS] 消费完毕到达文件尾
+[PASS] expect 匹配成功并消费
+[PASS] expect 不匹配返回 false
+[PASS] expect 失败后 ok 为假
+[PASS] 语法错误触发回调
+[PASS] 语法错误位置为当前单词
+[PASS] 语法错误类别码暂未分类
+[PASS] match 命中并消费
+[PASS] match 未命中返回 false
+[PASS] match 命中时输出被消费的单词
+[PASS] 首个词法单元为 Error 时 ok 为假
+[PASS] 词法错误时不输出单词
+[PASS] 失败后 marker 不输出
+全部通过
+[exit 0]
+
+$ cd tests/tmp/P2-1-demo && ../../../build/compiler --dump-parser; echo "编译器退出码=$?"; diff -u ../../official/exp1/output.txt output.txt && echo "框架输出与 exp1 一致"
+编译器退出码=0
+框架输出与 exp1 一致
+[exit 0]
+
+$ wc -l tests/tmp/P2-1-demo/output.txt
+66 tests/tmp/P2-1-demo/output.txt
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+----------------------------------------
+共 9 个用例：9 通过，0 失败
+[exit 0]

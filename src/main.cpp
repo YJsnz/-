@@ -1,7 +1,4 @@
-// 编译器主程序骨架（P1-1）
-// - 读取当前目录下的 testfile.txt
-// - 仅在 --dump-lexer 打开时创建 output.txt（默认关闭）
-// - 词法分析将在 P1-2 / P1-3 接入
+// 编译器主程序（P1-1 骨架，P2-1 接入语法分析）
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -9,11 +6,13 @@
 
 #include "common/error_reporter.h"
 #include "lexer/lexer.h"
+#include "parser/parser.h"
 
 namespace {
 
 struct Options {
     bool dump_lexer = false;
+    bool dump_parser = false;
     bool show_help = false;
 };
 
@@ -22,8 +21,9 @@ const char* const kOutputFile = "output.txt";
 
 void print_usage(std::ostream& os) {
     os << "用法：compiler [选项]\n"
-       << "  --dump-lexer   输出词法分析结果到 output.txt（默认关闭）\n"
-       << "  -h, --help     显示本帮助\n";
+       << "  --dump-lexer    输出词法分析结果到 output.txt\n"
+       << "  --dump-parser   输出单词与语法成分到 output.txt\n"
+       << "  -h, --help      显示本帮助\n";
 }
 
 bool parse_args(int argc, char** argv, Options& options, std::string& error) {
@@ -31,6 +31,8 @@ bool parse_args(int argc, char** argv, Options& options, std::string& error) {
         const std::string arg = argv[i];
         if (arg == "--dump-lexer") {
             options.dump_lexer = true;
+        } else if (arg == "--dump-parser") {
+            options.dump_parser = true;
         } else if (arg == "-h" || arg == "--help") {
             options.show_help = true;
         } else {
@@ -79,8 +81,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // 最终形态不输出词法调试信息；只有显式打开开关时才创建结果文件。
-    if (!options.dump_lexer) {
+    // 最终形态不输出调试信息；只有显式打开开关时才创建结果文件。
+    if (!options.dump_lexer && !options.dump_parser) {
         return 0;
     }
 
@@ -93,7 +95,21 @@ int main(int argc, char** argv) {
     common::ErrorReporter errors;
     lexer::Lexer lexer(source, [&errors](const common::Diagnostic& diagnostic) {
         errors.report(diagnostic);
+        std::cerr << "词法错误（" << diagnostic.line << ":" << diagnostic.column
+                  << "）：" << diagnostic.message << "\n";
     });
+
+    // --dump-parser 优先：输出单词 + 语法成分。
+    if (options.dump_parser) {
+        parser::Parser parser(lexer, &out,
+                              [&errors](const common::Diagnostic& diagnostic) {
+                                  errors.report(diagnostic);
+                                  std::cerr << "语法错误（" << diagnostic.line << ":"
+                                            << diagnostic.column << "）："
+                                            << diagnostic.message << "\n";
+                              });
+        return parser.parse_program() ? 0 : 1;
+    }
 
     for (;;) {
         const lexer::Token token = lexer.next_token();
@@ -101,9 +117,7 @@ int main(int argc, char** argv) {
             break;
         }
         if (token.kind == lexer::TokenKind::Error) {
-            std::cerr << "词法错误（" << token.line << ":" << token.column
-                      << "）：" << token.message << "\n";
-            return 1;
+            return 1;  // 已由 Lexer 回调打印
         }
         out << lexer::token_code(token.kind) << ' ' << token.lexeme << '\n';
     }
