@@ -2492,6 +2492,93 @@ int main() {
                   code[1].op == pcode::OpCode::Sto && code[1].operand == 1,
               "变量读取生成 LOD 0 / STO 1");
     }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nprintf(\"Hello World\");\n}\n", parsed);
+        check(parsed && code.size() == 3, "字符串写语句指令数为 3");
+        check(code[0].op == pcode::OpCode::WrtStr &&
+                  code[0].text == "Hello World" &&
+                  code[1].op == pcode::OpCode::Opr &&
+                  code[1].operand ==
+                      static_cast<int>(pcode::OprCode::WrtNl),
+              "字符串写语句生成 WRT_STR / WRT_NL");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nint x;\nscanf(x);\n}\n", parsed);
+        check(parsed && code.size() == 3, "整数读语句指令数为 3");
+        check(code[0].op == pcode::OpCode::Opr &&
+                  code[0].operand ==
+                      static_cast<int>(pcode::OprCode::ReadInt) &&
+                  code[1].op == pcode::OpCode::Sto && code[1].operand == 0,
+              "整数读语句生成 READ_INT / STO 0");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nchar c;\nscanf(c);\n}\n", parsed);
+        check(parsed && code.size() == 3, "字符读语句指令数为 3");
+        check(code[0].op == pcode::OpCode::Opr &&
+                  code[0].operand ==
+                      static_cast<int>(pcode::OprCode::ReadChar) &&
+                  code[1].op == pcode::OpCode::Sto && code[1].operand == 0,
+              "字符读语句生成 READ_CHAR / STO 0");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nint x;\nprintf(x);\n}\n", parsed);
+        check(parsed && code.size() == 4, "整数写语句指令数为 4");
+        check(code[0].op == pcode::OpCode::Lod && code[0].operand == 0 &&
+                  code[1].op == pcode::OpCode::Opr &&
+                  code[1].operand ==
+                      static_cast<int>(pcode::OprCode::WrtInt) &&
+                  code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand ==
+                      static_cast<int>(pcode::OprCode::WrtNl),
+              "整数写语句生成 LOD / WRT_INT / WRT_NL");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nchar c;\nprintf(c);\n}\n", parsed);
+        check(parsed && code.size() == 4, "字符写语句指令数为 4");
+        check(code[0].op == pcode::OpCode::Lod && code[1].op == pcode::OpCode::Opr &&
+                  code[1].operand ==
+                      static_cast<int>(pcode::OprCode::WrtChar),
+              "字符写语句生成 WRT_CHAR");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code = generate(
+            "void main(){\nint x;\nprintf(\"x=\", x);\n}\n", parsed);
+        check(parsed && code.size() == 5, "字符串+表达式写语句指令数为 5");
+        check(code[0].op == pcode::OpCode::WrtStr && code[0].text == "x=" &&
+                  code[1].op == pcode::OpCode::Lod && code[1].operand == 0 &&
+                  code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand ==
+                      static_cast<int>(pcode::OprCode::WrtInt) &&
+                  code[3].op == pcode::OpCode::Opr &&
+                  code[3].operand ==
+                      static_cast<int>(pcode::OprCode::WrtNl),
+              "字符串+表达式写语句顺序正确");
+    }
+    {
+        bool parsed = false;
+        const std::vector<pcode::Instruction> code =
+            generate("void main(){\nprintf('a');\n}\n", parsed);
+        check(parsed && code.size() == 4, "字符常量写语句指令数为 4");
+        check(code[0].op == pcode::OpCode::Lit && code[0].operand == 97 &&
+                  code[1].op == pcode::OpCode::Opr &&
+                  code[1].operand ==
+                      static_cast<int>(pcode::OprCode::WrtChar) &&
+                  code[2].op == pcode::OpCode::Opr &&
+                  code[2].operand ==
+                      static_cast<int>(pcode::OprCode::WrtNl),
+              "字符常量写语句生成 LIT 97 / WRT_CHAR / WRT_NL");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

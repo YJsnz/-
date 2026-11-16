@@ -916,6 +916,14 @@ bool Parser::parse_read_statement() {
         return false;
     }
 
+    if (generator_ != nullptr && symbol != nullptr &&
+        symbol->kind == semantic::SymbolKind::Variable) {
+        generator_->emit_opr(symbol->type == semantic::DataType::Char
+                                 ? pcode::OprCode::ReadChar
+                                 : pcode::OprCode::ReadInt);
+        generator_->emit_sto(symbol->address);
+    }
+
     marker("读语句");
     return ok_;
 }
@@ -926,22 +934,38 @@ bool Parser::parse_write_statement() {
         return false;
     }
 
+    bool has_expression = false;
     if (current().kind == lexer::TokenKind::StringConstant) {
+        const std::string text = current().lexeme;
         advance();
+        if (generator_ != nullptr) {
+            generator_->emit_wrt_str(text);
+        }
         marker("字符串");
         if (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_expression()) {
                 return false;
             }
+            has_expression = true;
         }
     } else {
         if (!parse_expression()) {
             return false;
         }
+        has_expression = true;
     }
 
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
+    }
+
+    if (generator_ != nullptr) {
+        if (has_expression) {
+            generator_->emit_opr(last_expression_type_ == semantic::DataType::Char
+                                     ? pcode::OprCode::WrtChar
+                                     : pcode::OprCode::WrtInt);
+        }
+        generator_->emit_opr(pcode::OprCode::WrtNl);
     }
 
     marker("写语句");
