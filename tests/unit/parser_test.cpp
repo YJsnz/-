@@ -35,6 +35,8 @@ public:
     using parser::Parser::can_start_variable;
     using parser::Parser::is_function_definition_start;
     using parser::Parser::parse_assignment_statement;
+    using parser::Parser::parse_condition;
+    using parser::Parser::parse_conditional_statement;
     using parser::Parser::parse_declaration_header;
     using parser::Parser::parse_expression;
     using parser::Parser::parse_factor;
@@ -715,10 +717,82 @@ int main() {
         check(out.str() == "SEMICN ;\n<语句>\n", "空语句输出正确");
     }
     {
-        lexer::Lexer lexer("if (x) y = 1;");
+        lexer::Lexer lexer("if (a < b) x = 1;");
         std::ostringstream out;
         TestParser parser(lexer, &out);
-        check(!parser.parse_statement(), "控制语句在 P2-8 阶段暂不支持");
+
+        check(parser.parse_statement(), "单分支条件语句解析成功");
+        const std::string expected =
+            "IFTK if\n"
+            "LPARENT (\n"
+            "IDENFR a\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "LSS <\n"
+            "IDENFR b\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "<条件>\n"
+            "RPARENT )\n"
+            "IDENFR x\n"
+            "ASSIGN =\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "<赋值语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n"
+            "<条件语句>\n";
+        check(out.str() == expected, "条件语句与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("if (a == 1) x = 1; else x = 2;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "if-else 条件语句解析成功");
+        check(out.str().find("SEMICN ;\n<语句>\nELSETK else") != std::string::npos,
+              "else 位于 then 语句之后");
+        const std::string tail = "<条件语句>\n";
+        check(out.str().size() >= tail.size() &&
+                  out.str().compare(out.str().size() - tail.size(), tail.size(), tail) == 0,
+              "条件语句标记位于最后");
+    }
+    {
+        lexer::Lexer lexer("if (a < b) if (c < d) x = 1; else x = 2;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "嵌套条件语句解析成功");
+        const std::string text = out.str();
+        std::size_t count = 0;
+        std::size_t pos = 0;
+        while ((pos = text.find("<条件语句>", pos)) != std::string::npos) {
+            ++count;
+            pos += 1;
+        }
+        check(count == 2, "嵌套条件语句输出两个条件语句标记");
+    }
+    {
+        lexer::Lexer lexer("if (a) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "缺少关系运算符时条件语句解析失败");
+    }
+    {
+        lexer::Lexer lexer("if (a < b) { x = 1; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "分支为块语句的条件语句解析成功");
+        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<条件语句>") !=
+                  std::string::npos,
+              "块语句分支的标记顺序正确");
     }
 
     if (failures == 0) {

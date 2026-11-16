@@ -71,6 +71,8 @@ protected:
     bool parse_read_statement();           // <读语句>
     bool parse_write_statement();          // <写语句>
     bool parse_return_statement();         // <返回语句>
+    bool parse_conditional_statement();    // <条件语句>
+    bool parse_condition();                // <条件>
 
     bool parse_expression();               // <表达式>
     bool parse_term();                     // <项>

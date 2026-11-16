@@ -490,6 +490,10 @@ bool Parser::parse_statement() {
         return ok_;
     }
 
+    if (current().kind == lexer::TokenKind::KeywordIf) {
+        return parse_conditional_statement();
+    }
+
     if (current().kind == lexer::TokenKind::Identifier) {
         if (!parse_assignment_statement()) {
             return false;
@@ -793,6 +797,53 @@ bool Parser::parse_function_call() {
     }
 
     marker("有返回值函数调用语句");
+    return ok_;
+}
+
+bool Parser::parse_conditional_statement() {
+    advance();  // if
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_condition()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!parse_statement()) {
+        return false;
+    }
+    if (ok_ && match(lexer::TokenKind::KeywordElse)) {
+        if (!parse_statement()) {
+            return false;
+        }
+    }
+
+    marker("条件语句");
+    return ok_;
+}
+
+bool Parser::parse_condition() {
+    if (!parse_expression()) {
+        return false;
+    }
+
+    const lexer::TokenKind kind = current().kind;
+    if (kind != lexer::TokenKind::Less && kind != lexer::TokenKind::LessEqual &&
+        kind != lexer::TokenKind::Greater &&
+        kind != lexer::TokenKind::GreaterEqual && kind != lexer::TokenKind::Equal &&
+        kind != lexer::TokenKind::NotEqual) {
+        syntax_error(current(), "期望关系运算符");
+        return false;
+    }
+    advance();
+
+    if (!parse_expression()) {
+        return false;
+    }
+
+    marker("条件");
     return ok_;
 }
 
