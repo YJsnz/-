@@ -7,6 +7,7 @@
 #include <iterator>
 #include <string>
 
+#include "common/error_reporter.h"
 #include "lexer/lexer.h"
 
 namespace {
@@ -89,7 +90,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    lexer::Lexer lexer(source);
+    common::ErrorReporter errors;
+    lexer::Lexer lexer(source, [&errors](const common::Diagnostic& diagnostic) {
+        errors.report(diagnostic);
+    });
+
     for (;;) {
         const lexer::Token token = lexer.next_token();
         if (token.kind == lexer::TokenKind::End) {

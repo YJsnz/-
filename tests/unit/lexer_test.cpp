@@ -380,6 +380,42 @@ int main() {
     {
         check(first_token("").kind == lexer::TokenKind::End, "空输入立即返回 End");
     }
+    {
+        std::vector<common::Diagnostic> diagnostics;
+        lexer::Lexer lexer("@", [&diagnostics](const common::Diagnostic& d) {
+            diagnostics.push_back(d);
+        });
+        const lexer::Token t = lexer.next_token();
+        check(t.kind == lexer::TokenKind::Error, "非法字符仍返回 Error");
+        check(diagnostics.size() == 1, "非法字符触发错误回调");
+        check(diagnostics.size() == 1 && diagnostics[0].line == 1 &&
+                  diagnostics[0].column == 1 && diagnostics[0].code == 'a',
+              "回调携带行号列号与类别码 a");
+        check(diagnostics.size() == 1 &&
+                  diagnostics[0].message.find("未识别的字符") != std::string::npos,
+              "回调消息包含错误描述");
+    }
+    {
+        std::vector<common::Diagnostic> diagnostics;
+        lexer::Lexer lexer("'ab'", [&diagnostics](const common::Diagnostic& d) {
+            diagnostics.push_back(d);
+        });
+        (void)lexer.next_token();
+        check(diagnostics.size() == 1 && diagnostics[0].code == 'a',
+              "字符常量错误触发回调");
+    }
+    {
+        std::vector<common::Diagnostic> diagnostics;
+        lexer::Lexer lexer("abc 123", [&diagnostics](const common::Diagnostic& d) {
+            diagnostics.push_back(d);
+        });
+        for (;;) {
+            if (lexer.next_token().kind == lexer::TokenKind::End) {
+                break;
+            }
+        }
+        check(diagnostics.empty(), "正确输入不产生诊断");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

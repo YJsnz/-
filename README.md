@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验一（词法分析）进行中**：P1-1～P1-8 已完成，下一次开发：P1-9。
+**实验一（词法分析）进行中**：P1-1～P1-9 已完成，下一次开发：P1-10。
 
 > `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下输出指导书单词表全部 39 个类别码；每个词法单元保留原文、独立单词值与行号。
 
@@ -38,7 +38,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-8）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-9）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -71,13 +71,16 @@ python tools/capture.py \
 │   └── capture.py                 # 运行命令并生成截图 + 原始日志
 ├── src/
 │   ├── main.cpp                   # 主程序骨架（读入、开关、输出文件）
+│   ├── common/
+│   │   ├── diagnostic.h           # 诊断信息结构
+│   │   └── error_reporter.h / .cpp # 诊断收集器（实验一只记录）
 │   └── lexer/
 │       ├── scanner.h / .cpp       # 字符扫描器：游标、行列号、空白、换行
 │       ├── token.h / .cpp         # 词法单元与类别码
-│       └── lexer.h / .cpp         # 标识符与保留字识别
+│       └── lexer.h / .cpp         # 词法分析器与错误回调
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
-│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-8）
+│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-9）
 │   ├── unit/                      # 单元测试（scanner 等）
 │   └── tmp/                       # 运行临时目录（不提交）
 ├── docs/
@@ -119,6 +122,7 @@ python tools/capture.py \
   - [P1-6 字符串常量](docs/repro/P1-6_字符串常量/README.md)
   - [P1-7 运算符与界符](docs/repro/P1-7_运算符与界符/README.md)
   - [P1-8 单词结构](docs/repro/P1-8_单词结构/README.md)
+  - [P1-9 错误接口](docs/repro/P1-9_错误接口/README.md)
 
 ## 开发约定（摘要）
 
@@ -130,7 +134,7 @@ python tools/capture.py \
 
 ## 已知限制
 
-- 词法分析已覆盖指导书单词表全部 39 个类别码，词法单元含原文/单词值/行号（P1-8）；P1-9～P1-11 将补充错误接口与官方样例验收；
-- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-8 词法用例；
+- 词法分析已覆盖全部 39 个类别码，含原文/单词值/行号，并已预留错误回调与诊断收集（P1-9）；P1-10～P1-11 将补充官方样例验收与阶段验收；
+- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-9 词法用例；
 - 语法分析、错误处理、代码生成尚未实现；
 - PCODE 指令集尚未设计（P4-1）。

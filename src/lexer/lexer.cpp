@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdlib>
+#include <utility>
 
 namespace lexer {
 namespace {
@@ -95,7 +96,8 @@ TokenKind keyword_kind(const std::string& lexeme) {
 
 }  // namespace
 
-Lexer::Lexer(const std::string& source) : scanner_(source) {}
+Lexer::Lexer(const std::string& source, ErrorCallback on_error)
+    : scanner_(source), on_error_(std::move(on_error)) {}
 
 std::string Lexer::slice_from(std::size_t start) const {
     return scanner_.source().substr(start, scanner_.offset() - start);
@@ -114,22 +116,27 @@ Token Lexer::next_token() {
     }
 
     if (is_letter(scanner_.peek())) {
-        return scan_identifier_or_keyword();
+        token = scan_identifier_or_keyword();
+    } else if (is_digit(scanner_.peek())) {
+        token = scan_number();
+    } else if (scanner_.peek() == '\'') {
+        token = scan_char_constant();
+    } else if (scanner_.peek() == '"') {
+        token = scan_string_constant();
+    } else {
+        token = scan_operator_or_delimiter();
     }
 
-    if (is_digit(scanner_.peek())) {
-        return scan_number();
+    if (token.kind == TokenKind::Error && on_error_) {
+        common::Diagnostic diagnostic;
+        diagnostic.line = token.line;
+        diagnostic.column = token.column;
+        diagnostic.code = 'a';
+        diagnostic.message = token.message;
+        on_error_(diagnostic);
     }
 
-    if (scanner_.peek() == '\'') {
-        return scan_char_constant();
-    }
-
-    if (scanner_.peek() == '"') {
-        return scan_string_constant();
-    }
-
-    return scan_operator_or_delimiter();
+    return token;
 }
 
 Token Lexer::scan_identifier_or_keyword() {
