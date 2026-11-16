@@ -36,6 +36,7 @@ public:
     using parser::Parser::is_function_definition_start;
     using parser::Parser::parse_declaration_header;
     using parser::Parser::parse_function_definition;
+    using parser::Parser::parse_main_function;
     using parser::Parser::parse_parameter_list;
     using parser::Parser::parse_variable_declaration;
     using parser::Parser::parse_variable_definition;
@@ -376,6 +377,64 @@ int main() {
 
         check(parser.parse_function_definition(), "嵌套花括号的函数体解析成功");
         check(parser.at_end(), "嵌套函数体消费完所有单词");
+    }
+    {
+        lexer::Lexer lexer("void main(){}");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "空主函数程序解析成功");
+        check(parser.at_end(), "主函数后到达文件尾");
+        const std::string expected =
+            "VOIDTK void\n"
+            "MAINTK main\n"
+            "LPARENT (\n"
+            "RPARENT )\n"
+            "LBRACE {\n"
+            "RBRACE }\n"
+            "<主函数>\n"
+            "<程序>\n";
+        check(out.str() == expected, "主函数与程序标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer(
+            "const int a = 1;\n"
+            "int x;\n"
+            "int f(int n){ return(n); }\n"
+            "void main(){ }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "完整程序骨架解析成功");
+        const std::string text = out.str();
+        check(text.find("<常量说明>\nINTTK int\nIDENFR x") != std::string::npos,
+              "常量说明在变量说明之前");
+        check(text.find("<变量说明>\nINTTK int\nIDENFR f") != std::string::npos,
+              "变量说明在函数定义之前");
+        check(text.find("<有返回值函数定义>\nVOIDTK void\nMAINTK main") !=
+                  std::string::npos,
+              "函数定义在主函数之前");
+        check(text.size() >= 9 &&
+                  text.compare(text.size() - 9, 9, "<程序>\n") == 0,
+              "程序标记位于最后");
+    }
+    {
+        lexer::Lexer lexer("int a;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_program(), "缺少主函数时解析失败");
+    }
+    {
+        lexer::Lexer lexer("void main(){} int a;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_program(), "主函数后的多余内容被拒绝");
+    }
+    {
+        lexer::Lexer lexer("void main(int a){}");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_program(), "主函数带参数时解析失败");
     }
 
     if (failures == 0) {

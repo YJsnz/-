@@ -1,0 +1,72 @@
+# P2-5 主函数与程序结构验证
+# 时间: 2026-11-16 11:57:40
+# 提交: dc59107
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 14
+[PASS] 嵌套花括号的函数体解析成功
+[PASS] 嵌套函数体消费完所有单词
+[PASS] 空主函数程序解析成功
+[PASS] 主函数后到达文件尾
+[PASS] 主函数与程序标记顺序正确
+[PASS] 完整程序骨架解析成功
+[PASS] 常量说明在变量说明之前
+[PASS] 变量说明在函数定义之前
+[PASS] 函数定义在主函数之前
+[PASS] 程序标记位于最后
+[PASS] 缺少主函数时解析失败
+[PASS] 主函数后的多余内容被拒绝
+[PASS] 主函数带参数时解析失败
+全部通过
+[exit 0]
+
+$ cd tests/tmp/P2-5-demo && ../../../build/compiler --dump-parser; echo "退出码=$?"; wc -l output.txt
+退出码=0
+83 output.txt
+[exit 0]
+
+$ head -n 6 tests/tmp/P2-5-demo/output.txt
+CONSTTK coNst
+INTTK int
+IDENFR cONst1
+ASSIGN =
+INTCON 001
+<无符号整数>
+[exit 0]
+
+$ tail -n 8 tests/tmp/P2-5-demo/output.txt
+COMMA ,
+INTCON 20
+RPARENT )
+RPARENT )
+SEMICN ;
+RBRACE }
+<主函数>
+<程序>
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+----------------------------------------
+共 9 个用例：9 通过，0 失败
+[exit 0]

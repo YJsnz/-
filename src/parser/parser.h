@@ -61,6 +61,7 @@ protected:
     bool parse_function_definition();      // <有/无返回值函数定义>
     bool parse_compound_statement_body();  // 临时：仅消费 { ... }
     bool is_function_definition_start();
+    bool parse_main_function();            // <主函数>
 
 private:
     void fill_to(std::size_t k);

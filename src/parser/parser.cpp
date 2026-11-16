@@ -43,9 +43,13 @@ bool Parser::parse_program() {
     while (ok_ && is_function_definition_start()) {
         parse_function_definition();
     }
-    // 临时：其余部分在后续 TODO 中实现，先消费以保证演示可跑通。
-    while (ok_ && !at_end()) {
-        advance();
+    if (!ok_ || !parse_main_function()) {
+        return false;
+    }
+    marker("程序");
+    if (ok_ && !at_end()) {
+        syntax_error(current(), "主函数之后存在多余内容");
+        return false;
     }
     return ok_;
 }
@@ -467,6 +471,31 @@ bool Parser::parse_function_definition() {
         return false;
     }
     marker("有返回值函数定义");
+    return ok_;
+}
+
+bool Parser::parse_main_function() {
+    if (current().kind != lexer::TokenKind::KeywordVoid ||
+        peek_token(1).kind != lexer::TokenKind::KeywordMain) {
+        syntax_error(current(), "期望主函数 void main()");
+        return false;
+    }
+
+    advance();  // void
+    if (!expect(lexer::TokenKind::KeywordMain, "main")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!parse_compound_statement_body()) {
+        return false;
+    }
+
+    marker("主函数");
     return ok_;
 }
 
