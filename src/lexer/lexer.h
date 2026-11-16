@@ -17,6 +17,7 @@ public:
 
 private:
     Token scan_identifier_or_keyword();
+    Token scan_number();
 
     Scanner scanner_;
 };

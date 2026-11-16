@@ -133,6 +133,37 @@ int main() {
               "Error 记录位置与原字符");
     }
     {
+        const lexer::Token t = first_token("0");
+        check(t.kind == lexer::TokenKind::IntConstant && t.lexeme == "0",
+              "0 识别为整数常量");
+        check(t.line == 1 && t.column == 1, "整数位置为 1:1");
+    }
+    {
+        const lexer::Token t = first_token("001");
+        check(t.kind == lexer::TokenKind::IntConstant && t.lexeme == "001",
+              "前导零原样保留（001）");
+        check(first_token("12345").lexeme == "12345", "多位整数完整保留");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("123abc");
+        check(tokens.size() == 3, "123abc 拆成 2 个单词和一个 End");
+        check(tokens.size() == 3 && tokens[0].kind == lexer::TokenKind::IntConstant &&
+                  tokens[0].lexeme == "123",
+              "数字在字母前停止（123）");
+        check(tokens.size() == 3 && tokens[1].kind == lexer::TokenKind::Identifier &&
+                  tokens[1].lexeme == "abc",
+              "数字后的字母成为标识符");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("  42\n07");
+        check(tokens.size() == 3 && tokens[0].kind == lexer::TokenKind::IntConstant &&
+                  tokens[0].line == 1 && tokens[0].column == 3,
+              "42 位于 1:3");
+        check(tokens.size() == 3 && tokens[1].kind == lexer::TokenKind::IntConstant &&
+                  tokens[1].lexeme == "07" && tokens[1].line == 2 && tokens[1].column == 1,
+              "07 位于 2:1 且保留前导零");
+    }
+    {
         check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
               "标识符类别码为 IDENFR");
         check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",

@@ -10,6 +10,7 @@ enum class TokenKind {
     Error,
 
     Identifier,
+    IntConstant,
 
     KeywordConst,
     KeywordInt,

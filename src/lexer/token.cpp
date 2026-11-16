@@ -6,6 +6,8 @@ const char* token_code(TokenKind kind) {
     switch (kind) {
         case TokenKind::Identifier:
             return "IDENFR";
+        case TokenKind::IntConstant:
+            return "INTCON";
         case TokenKind::KeywordConst:
             return "CONSTTK";
         case TokenKind::KeywordInt:

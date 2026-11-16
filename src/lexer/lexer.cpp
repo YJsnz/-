@@ -88,10 +88,14 @@ Token Lexer::next_token() {
         return scan_identifier_or_keyword();
     }
 
+    if (is_digit(scanner_.peek())) {
+        return scan_number();
+    }
+
     token.kind = TokenKind::Error;
     token.lexeme = std::string(1, scanner_.advance());
     token.message = "未识别的字符 '" + token.lexeme +
-                    "'（数字、字符、字符串与运算符将在后续任务支持）";
+                    "'（字符、字符串、运算符与界符将在后续任务支持）";
     return token;
 }
 
@@ -105,6 +109,19 @@ Token Lexer::scan_identifier_or_keyword() {
     }
 
     token.kind = keyword_kind(token.lexeme);
+    return token;
+}
+
+Token Lexer::scan_number() {
+    Token token;
+    token.line = scanner_.line();
+    token.column = scanner_.column();
+
+    while (!scanner_.at_end() && is_digit(scanner_.peek())) {
+        token.lexeme.push_back(scanner_.advance());
+    }
+
+    token.kind = TokenKind::IntConstant;
     return token;
 }
 
