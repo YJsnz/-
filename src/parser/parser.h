@@ -73,6 +73,10 @@ protected:
     bool parse_return_statement();         // <返回语句>
     bool parse_conditional_statement();    // <条件语句>
     bool parse_condition();                // <条件>
+    bool parse_loop_statement();           // <循环语句>
+    bool parse_while_statement();
+    bool parse_for_statement();
+    bool parse_step();                     // <步长>
 
     bool parse_expression();               // <表达式>
     bool parse_term();                     // <项>

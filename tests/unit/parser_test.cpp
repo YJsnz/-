@@ -40,15 +40,19 @@ public:
     using parser::Parser::parse_declaration_header;
     using parser::Parser::parse_expression;
     using parser::Parser::parse_factor;
+    using parser::Parser::parse_for_statement;
     using parser::Parser::parse_function_call;
     using parser::Parser::parse_function_definition;
+    using parser::Parser::parse_loop_statement;
     using parser::Parser::parse_main_function;
     using parser::Parser::parse_parameter_list;
     using parser::Parser::parse_read_statement;
     using parser::Parser::parse_return_statement;
     using parser::Parser::parse_statement;
+    using parser::Parser::parse_step;
     using parser::Parser::parse_term;
     using parser::Parser::parse_value_parameter_list;
+    using parser::Parser::parse_while_statement;
     using parser::Parser::parse_write_statement;
     using parser::Parser::parse_variable_declaration;
     using parser::Parser::parse_variable_definition;
@@ -793,6 +797,91 @@ int main() {
         check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<条件语句>") !=
                   std::string::npos,
               "块语句分支的标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("while (a < b) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "while 循环解析成功");
+        const std::string expected =
+            "WHILETK while\n"
+            "LPARENT (\n"
+            "IDENFR a\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "LSS <\n"
+            "IDENFR b\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "<条件>\n"
+            "RPARENT )\n"
+            "IDENFR x\n"
+            "ASSIGN =\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "<赋值语句>\n"
+            "SEMICN ;\n"
+            "<语句>\n"
+            "<循环语句>\n";
+        check(out.str() == expected, "while 循环与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("for (i = 1; i < 10; i = i + 1) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "for 循环解析成功");
+        const std::string text = out.str();
+        check(text.find("FORTK for\nLPARENT (\nIDENFR i\nASSIGN =\nINTCON 1") !=
+                  std::string::npos,
+              "for 初始化部分输出正确");
+        check(text.find("<条件>\nSEMICN ;\nIDENFR i\nASSIGN =\nIDENFR i\nPLUS +\n"
+                        "INTCON 1\n<无符号整数>\n<步长>\nRPARENT )") !=
+                  std::string::npos,
+              "for 步长部分输出正确");
+        const std::string tail = "<语句>\n<循环语句>\n";
+        check(text.size() >= tail.size() &&
+                  text.compare(text.size() - tail.size(), tail.size(), tail) == 0,
+              "for 循环标记位于最后");
+    }
+    {
+        lexer::Lexer lexer("for (i = 10; i > 0; i = i - 2) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "负步长 for 循环解析成功");
+        check(out.str().find("MINU -\nINTCON 2\n<无符号整数>\n<步长>") !=
+                  std::string::npos,
+              "负步长输出正确");
+    }
+    {
+        lexer::Lexer lexer("while (a < b) { x = 1; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "循环体为块语句的 while 解析成功");
+        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<循环语句>") !=
+                  std::string::npos,
+              "块循环体的标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("while (a) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "循环条件缺少关系运算符时失败");
+    }
+    {
+        lexer::Lexer lexer("for (i = 1 i < 10; i = i + 1) x = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "for 缺少分号时解析失败");
     }
 
     if (failures == 0) {

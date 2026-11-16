@@ -494,6 +494,11 @@ bool Parser::parse_statement() {
         return parse_conditional_statement();
     }
 
+    if (current().kind == lexer::TokenKind::KeywordWhile ||
+        current().kind == lexer::TokenKind::KeywordFor) {
+        return parse_loop_statement();
+    }
+
     if (current().kind == lexer::TokenKind::Identifier) {
         if (!parse_assignment_statement()) {
             return false;
@@ -844,6 +849,103 @@ bool Parser::parse_condition() {
     }
 
     marker("条件");
+    return ok_;
+}
+
+bool Parser::parse_loop_statement() {
+    if (current().kind == lexer::TokenKind::KeywordWhile) {
+        return parse_while_statement();
+    }
+    if (current().kind == lexer::TokenKind::KeywordFor) {
+        return parse_for_statement();
+    }
+    syntax_error(current(), "期望 while 或 for");
+    return false;
+}
+
+bool Parser::parse_while_statement() {
+    advance();  // while
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_condition()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!parse_statement()) {
+        return false;
+    }
+
+    marker("循环语句");
+    return ok_;
+}
+
+bool Parser::parse_for_statement() {
+    advance();  // for
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+
+    // 初始化：标识符 = 表达式
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Assign, "=")) {
+        return false;
+    }
+    if (!parse_expression()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+        return false;
+    }
+
+    // 条件
+    if (!parse_condition()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+        return false;
+    }
+
+    // 步长更新：标识符 = 标识符 (+|-) 步长
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Assign, "=")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (current().kind != lexer::TokenKind::Plus &&
+        current().kind != lexer::TokenKind::Minus) {
+        syntax_error(current(), "期望 + 或 -");
+        return false;
+    }
+    advance();
+    if (!parse_step()) {
+        return false;
+    }
+
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!parse_statement()) {
+        return false;
+    }
+
+    marker("循环语句");
+    return ok_;
+}
+
+bool Parser::parse_step() {
+    if (!parse_unsigned_integer()) {
+        return false;
+    }
+    marker("步长");
     return ok_;
 }
 
