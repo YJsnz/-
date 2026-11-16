@@ -1,0 +1,122 @@
+# P2-11 情况语句验证
+# 时间: 2026-11-16 12:13:07
+# 提交: 89aa38f
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 16
+[PASS] for 缺少分号时解析失败
+[PASS] 情况语句解析成功
+[PASS] switch 表达式输出正确
+[PASS] case 常量与冒号输出正确
+[PASS] 情况表后接缺省语句
+[PASS] 情况语句标记位于最后
+[PASS] 多个情况子语句解析成功
+[PASS] 两个 case 输出两个情况子语句标记
+[PASS] 字符常量 case 解析成功
+[PASS] 字符 case 输出常量标记
+[PASS] 缺少 default 时情况语句解析失败
+[PASS] 缺少 case 时情况语句解析失败
+[PASS] 块语句作为 case 分支解析成功
+[PASS] 块分支的标记顺序正确
+[PASS] case 缺少冒号时解析失败
+全部通过
+[exit 0]
+
+$ cd tests/tmp/P2-11-demo && ../../../build/compiler --dump-parser && cat output.txt
+VOIDTK void
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+INTTK int
+IDENFR x
+<变量定义无初始化>
+<变量定义>
+SEMICN ;
+<变量说明>
+SWITCHTK switch
+LPARENT (
+IDENFR x
+<因子>
+<项>
+<表达式>
+RPARENT )
+LBRACE {
+CASETK case
+INTCON 1
+<无符号整数>
+<整数>
+<常量>
+COLON :
+IDENFR x
+ASSIGN =
+INTCON 1
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<赋值语句>
+SEMICN ;
+<语句>
+<情况子语句>
+<情况表>
+DEFAULTTK default
+COLON :
+IDENFR x
+ASSIGN =
+INTCON 2
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<赋值语句>
+SEMICN ;
+<语句>
+<缺省>
+RBRACE }
+<情况语句>
+<语句列>
+<复合语句>
+RBRACE }
+<主函数>
+<程序>
+[exit 0]
+
+$ ./scripts/verify.sh P2-8
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P2-8
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-8
+----------------------------------------
+共 10 个用例：10 通过，0 失败
+[exit 0]

@@ -499,6 +499,10 @@ bool Parser::parse_statement() {
         return parse_loop_statement();
     }
 
+    if (current().kind == lexer::TokenKind::KeywordSwitch) {
+        return parse_switch_statement();
+    }
+
     if (current().kind == lexer::TokenKind::Identifier) {
         if (!parse_assignment_statement()) {
             return false;
@@ -946,6 +950,81 @@ bool Parser::parse_step() {
         return false;
     }
     marker("步长");
+    return ok_;
+}
+
+bool Parser::parse_switch_statement() {
+    advance();  // switch
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_expression()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::LBrace, "{")) {
+        return false;
+    }
+    if (!parse_case_table()) {
+        return false;
+    }
+    if (!parse_default_clause()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RBrace, "右花括号 }")) {
+        return false;
+    }
+
+    marker("情况语句");
+    return ok_;
+}
+
+bool Parser::parse_case_table() {
+    if (current().kind != lexer::TokenKind::KeywordCase) {
+        syntax_error(current(), "期望 case");
+        return false;
+    }
+
+    do {
+        if (!parse_case_clause()) {
+            return false;
+        }
+    } while (ok_ && current().kind == lexer::TokenKind::KeywordCase);
+
+    marker("情况表");
+    return ok_;
+}
+
+bool Parser::parse_case_clause() {
+    advance();  // case
+    if (!parse_constant()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Colon, "冒号 :")) {
+        return false;
+    }
+    if (!parse_statement()) {
+        return false;
+    }
+
+    marker("情况子语句");
+    return ok_;
+}
+
+bool Parser::parse_default_clause() {
+    if (!expect(lexer::TokenKind::KeywordDefault, "default")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Colon, "冒号 :")) {
+        return false;
+    }
+    if (!parse_statement()) {
+        return false;
+    }
+
+    marker("缺省");
     return ok_;
 }
 

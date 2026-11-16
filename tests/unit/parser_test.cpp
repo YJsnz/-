@@ -35,9 +35,12 @@ public:
     using parser::Parser::can_start_variable;
     using parser::Parser::is_function_definition_start;
     using parser::Parser::parse_assignment_statement;
+    using parser::Parser::parse_case_clause;
+    using parser::Parser::parse_case_table;
     using parser::Parser::parse_condition;
     using parser::Parser::parse_conditional_statement;
     using parser::Parser::parse_declaration_header;
+    using parser::Parser::parse_default_clause;
     using parser::Parser::parse_expression;
     using parser::Parser::parse_factor;
     using parser::Parser::parse_for_statement;
@@ -50,6 +53,7 @@ public:
     using parser::Parser::parse_return_statement;
     using parser::Parser::parse_statement;
     using parser::Parser::parse_step;
+    using parser::Parser::parse_switch_statement;
     using parser::Parser::parse_term;
     using parser::Parser::parse_value_parameter_list;
     using parser::Parser::parse_while_statement;
@@ -882,6 +886,79 @@ int main() {
         std::ostringstream out;
         TestParser parser(lexer, &out);
         check(!parser.parse_statement(), "for 缺少分号时解析失败");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { case 1: x = 1; default: x = 2; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "情况语句解析成功");
+        const std::string text = out.str();
+        check(text.find("SWITCHTK switch\nLPARENT (\nIDENFR x") != std::string::npos,
+              "switch 表达式输出正确");
+        check(text.find("CASETK case\nINTCON 1\n<无符号整数>\n<整数>\n<常量>\nCOLON :") !=
+                  std::string::npos,
+              "case 常量与冒号输出正确");
+        check(text.find("<语句>\n<情况子语句>\n<情况表>\nDEFAULTTK default\nCOLON :") !=
+                  std::string::npos,
+              "情况表后接缺省语句");
+        const std::string tail = "<语句>\n<缺省>\nRBRACE }\n<情况语句>\n";
+        check(text.size() >= tail.size() &&
+                  text.compare(text.size() - tail.size(), tail.size(), tail) == 0,
+              "情况语句标记位于最后");
+    }
+    {
+        lexer::Lexer lexer(
+            "switch (x) { case 1: x = 1; case 2: x = 2; default: x = 3; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "多个情况子语句解析成功");
+        const std::string text = out.str();
+        std::size_t count = 0;
+        std::size_t pos = 0;
+        while ((pos = text.find("<情况子语句>", pos)) != std::string::npos) {
+            ++count;
+            pos += 1;
+        }
+        check(count == 2, "两个 case 输出两个情况子语句标记");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { case 'a': x = 1; default: x = 2; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "字符常量 case 解析成功");
+        check(out.str().find("CHARCON a\n<常量>\nCOLON :") != std::string::npos,
+              "字符 case 输出常量标记");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { case 1: x = 1; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "缺少 default 时情况语句解析失败");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { default: x = 1; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "缺少 case 时情况语句解析失败");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { case 1: { x = 1; } default: x = 2; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_statement(), "块语句作为 case 分支解析成功");
+        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<情况子语句>") !=
+                  std::string::npos,
+              "块分支的标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("switch (x) { case 1 x = 1; default: x = 2; }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_statement(), "case 缺少冒号时解析失败");
     }
 
     if (failures == 0) {

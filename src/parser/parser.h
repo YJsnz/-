@@ -77,6 +77,10 @@ protected:
     bool parse_while_statement();
     bool parse_for_statement();
     bool parse_step();                     // <步长>
+    bool parse_switch_statement();         // <情况语句>
+    bool parse_case_table();               // <情况表>
+    bool parse_case_clause();              // <情况子语句>
+    bool parse_default_clause();           // <缺省>
 
     bool parse_expression();               // <表达式>
     bool parse_term();                     // <项>
