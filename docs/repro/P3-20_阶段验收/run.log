@@ -1,0 +1,85 @@
+# P3-20 实验三阶段验收
+# 时间: 2026-11-16 13:13:15
+# 提交: 04af68a
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/verify.sh stage3
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P3-10
+[PASS] P3-11
+[PASS] P3-12
+[PASS] P3-13
+[PASS] P3-14
+[PASS] P3-15
+[PASS] P3-16
+[PASS] P3-17
+[PASS] P3-18
+[PASS] P3-19
+[PASS] P3-2
+[PASS] P3-3
+[PASS] P3-4
+[PASS] P3-5
+[PASS] P3-6
+[PASS] P3-7
+[PASS] P3-8
+[PASS] P3-9
+----------------------------------------
+共 18 个用例：18 通过，0 失败
+[exit 0]
+
+$ for c in a b c d e f g h i j k l m n o p; do printf "%s:%s " "$c" "$(grep -l " $c\$" tests/cases/P3-*/expect.txt | wc -l)"; done; echo
+a:2 b:1 c:1 d:1 e:1 f:1 g:1 h:1 i:1 j:1 k:3 l:1 m:1 n:1 o:1 p:1 
+[exit 0]
+
+$ diff -u tests/official/exp3/error.txt tests/tmp/P3-19/error.txt && echo "官方 exp3 一致"
+官方 exp3 一致
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-13
+[PASS] P2-8
+[PASS] P3-10
+[PASS] P3-11
+[PASS] P3-12
+[PASS] P3-13
+[PASS] P3-14
+[PASS] P3-15
+[PASS] P3-16
+[PASS] P3-17
+[PASS] P3-18
+[PASS] P3-19
+[PASS] P3-2
+[PASS] P3-3
+[PASS] P3-4
+[PASS] P3-5
+[PASS] P3-6
+[PASS] P3-7
+[PASS] P3-8
+[PASS] P3-9
+----------------------------------------
+共 29 个用例：29 通过，0 失败
+[exit 0]
