@@ -3,6 +3,21 @@
 #include <utility>
 
 namespace parser {
+namespace {
+
+std::string to_lower_ascii(const std::string& text) {
+    std::string lowered;
+    lowered.reserve(text.size());
+    for (char c : text) {
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+        lowered.push_back(c);
+    }
+    return lowered;
+}
+
+}  // namespace
 
 Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_error)
     : lexer_(lexer), out_(out), on_error_(std::move(on_error)) {
@@ -503,6 +518,24 @@ bool Parser::parse_statement() {
         return parse_switch_statement();
     }
 
+    if (current().kind == lexer::TokenKind::Identifier &&
+        peek_token(1).kind == lexer::TokenKind::LParen) {
+        const std::string name = to_lower_ascii(current().value);
+        bool returns_value = true;  // 未定义函数暂按有返回值处理
+        const auto it = function_returns_.find(name);
+        if (it != function_returns_.end()) {
+            returns_value = it->second;
+        }
+        if (!parse_call_statement(returns_value)) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
+    }
+
     if (current().kind == lexer::TokenKind::Identifier) {
         if (!parse_assignment_statement()) {
             return false;
@@ -623,9 +656,11 @@ bool Parser::is_function_definition_start() {
 bool Parser::parse_function_definition() {
     if (current().kind == lexer::TokenKind::KeywordVoid) {
         advance();  // void
+        const std::string name = to_lower_ascii(current().value);
         if (!expect(lexer::TokenKind::Identifier, "标识符")) {
             return false;
         }
+        function_returns_[name] = false;
         if (!expect(lexer::TokenKind::LParen, "(")) {
             return false;
         }
@@ -642,9 +677,11 @@ bool Parser::parse_function_definition() {
         return ok_;
     }
 
+    const std::string name = to_lower_ascii(peek_token(1).value);
     if (!parse_declaration_header()) {
         return false;
     }
+    function_returns_[name] = true;
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
@@ -806,6 +843,24 @@ bool Parser::parse_function_call() {
     }
 
     marker("有返回值函数调用语句");
+    return ok_;
+}
+
+bool Parser::parse_call_statement(bool returns_value) {
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_value_parameter_list()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+
+    marker(returns_value ? "有返回值函数调用语句" : "无返回值函数调用语句");
     return ok_;
 }
 

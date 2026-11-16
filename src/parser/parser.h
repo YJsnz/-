@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <deque>
 #include <functional>
+#include <map>
 #include <ostream>
 #include <string>
 
@@ -86,7 +87,8 @@ protected:
     bool parse_term();                     // <项>
     bool parse_factor();                   // <因子>
     bool parse_value_parameter_list();     // <值参数表>
-    bool parse_function_call();            // <有返回值函数调用语句>
+    bool parse_function_call();            // <有返回值函数调用语句>（表达式内）
+    bool parse_call_statement(bool returns_value);  // 函数调用语句
 
 private:
     void fill_to(std::size_t k);
@@ -95,6 +97,7 @@ private:
     std::ostream* out_;
     SyntaxErrorCallback on_error_;
     std::deque<lexer::Token> lookahead_;
+    std::map<std::string, bool> function_returns_;  // 已定义函数：名字(小写) -> 是否返回值
     bool eof_ = false;
     bool ok_ = true;
 };

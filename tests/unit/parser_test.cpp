@@ -35,6 +35,7 @@ public:
     using parser::Parser::can_start_variable;
     using parser::Parser::is_function_definition_start;
     using parser::Parser::parse_assignment_statement;
+    using parser::Parser::parse_call_statement;
     using parser::Parser::parse_case_clause;
     using parser::Parser::parse_case_table;
     using parser::Parser::parse_condition;
@@ -959,6 +960,73 @@ int main() {
         std::ostringstream out;
         TestParser parser(lexer, &out);
         check(!parser.parse_statement(), "case 缺少冒号时解析失败");
+    }
+    {
+        lexer::Lexer lexer(
+            "void show(int x){ }\n"
+            "void main(){ show(1); }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "无返回值函数调用语句解析成功");
+        check(out.str().find("<值参数表>\nRPARENT )\n<无返回值函数调用语句>\n"
+                             "SEMICN ;\n<语句>") != std::string::npos,
+              "无返回值调用标记正确");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(){ return(1); }\n"
+            "void main(){ f(); }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "有返回值函数调用语句解析成功");
+        check(out.str().find("<值参数表>\nRPARENT )\n<有返回值函数调用语句>\n"
+                             "SEMICN ;\n<语句>") != std::string::npos,
+              "有返回值调用标记正确");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(int a,int b){ }\n"
+            "void main(){ g(1,2); }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "多实参函数调用语句解析成功");
+        check(out.str().find("COMMA ,") != std::string::npos,
+              "多实参之间输出逗号");
+    }
+    {
+        lexer::Lexer lexer(
+            "void h(){ }\n"
+            "void main(){ h(); }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "空实参函数调用语句解析成功");
+        check(out.str().find("<值参数表>\nRPARENT )\n<无返回值函数调用语句>") !=
+                  std::string::npos,
+              "空值参数表的调用标记正确");
+    }
+    {
+        lexer::Lexer lexer("void main(){ foo(1); }");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "未定义函数调用按有返回值处理");
+        check(out.str().find("<有返回值函数调用语句>") != std::string::npos,
+              "未定义函数输出有返回值标记");
+    }
+    {
+        lexer::Lexer lexer(
+            "void Show(int x){ }\n"
+            "void main(){ show(1); }\n");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_program(), "函数名大小写不敏感查找成功");
+        check(out.str().find("<无返回值函数调用语句>") != std::string::npos,
+              "大小写不同的调用仍识别为无返回值");
     }
 
     if (failures == 0) {
