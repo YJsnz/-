@@ -6,15 +6,39 @@ namespace parser {
 
 Parser::Parser(lexer::Lexer& lexer, std::ostream* out, SyntaxErrorCallback on_error)
     : lexer_(lexer), out_(out), on_error_(std::move(on_error)) {
-    current_ = lexer_.next_token();
-    if (current_.kind == lexer::TokenKind::Error) {
+    fill_to(0);
+    if (current().kind == lexer::TokenKind::Error) {
         ok_ = false;  // 词法错误已由 Lexer 回调上报
     }
 }
 
+void Parser::fill_to(std::size_t k) {
+    while (lookahead_.size() <= k && !eof_) {
+        lexer::Token token = lexer_.next_token();
+        if (token.kind == lexer::TokenKind::Error) {
+            ok_ = false;  // 词法错误已由 Lexer 回调上报
+        }
+        if (token.kind == lexer::TokenKind::End) {
+            eof_ = true;
+        }
+        lookahead_.push_back(token);
+    }
+}
+
+const lexer::Token& Parser::peek_token(std::size_t k) {
+    fill_to(k);
+    if (k >= lookahead_.size()) {
+        return lookahead_.back();  // 文件尾之后统一返回 End
+    }
+    return lookahead_[k];
+}
+
 bool Parser::parse_program() {
-    if (current_.kind == lexer::TokenKind::KeywordConst) {
+    if (current().kind == lexer::TokenKind::KeywordConst) {
         parse_constant_declaration();
+    }
+    if (ok_ && can_start_variable()) {
+        parse_variable_declaration();
     }
     // 临时：其余部分在后续 TODO 中实现，先消费以保证演示可跑通。
     while (ok_ && !at_end()) {
@@ -22,6 +46,64 @@ bool Parser::parse_program() {
     }
     return ok_;
 }
+
+bool Parser::advance() {
+    if (!ok_ || current().kind == lexer::TokenKind::End) {
+        return false;
+    }
+
+    const lexer::Token token = current();
+    if (out_ != nullptr) {
+        *out_ << lexer::token_code(token.kind) << ' ' << token.lexeme << '\n';
+    }
+    lookahead_.pop_front();
+    fill_to(0);
+
+    if (current().kind == lexer::TokenKind::Error) {
+        ok_ = false;
+        return false;
+    }
+    return true;
+}
+
+bool Parser::match(lexer::TokenKind kind) {
+    if (current().kind != kind) {
+        return false;
+    }
+    return advance();
+}
+
+bool Parser::expect(lexer::TokenKind kind, const std::string& context) {
+    if (match(kind)) {
+        return true;
+    }
+    syntax_error(current(), "期望" + context);
+    return false;
+}
+
+void Parser::marker(const std::string& name) {
+    if (ok_ && out_ != nullptr) {
+        *out_ << '<' << name << ">\n";
+    }
+}
+
+void Parser::syntax_error(const lexer::Token& token, const std::string& message) {
+    if (!ok_) {
+        return;
+    }
+    ok_ = false;
+    if (!on_error_) {
+        return;
+    }
+    common::Diagnostic diagnostic;
+    diagnostic.line = token.line;
+    diagnostic.column = token.column;
+    diagnostic.code = '\0';  // 语法错误：实验三再分配类别码
+    diagnostic.message = message;
+    on_error_(diagnostic);
+}
+
+// ---------------------------------------------------------------- 常量
 
 bool Parser::parse_constant_declaration() {
     do {
@@ -34,7 +116,7 @@ bool Parser::parse_constant_declaration() {
         if (!expect(lexer::TokenKind::Semicolon, "分号")) {
             return false;
         }
-    } while (ok_ && current_.kind == lexer::TokenKind::KeywordConst);
+    } while (ok_ && current().kind == lexer::TokenKind::KeywordConst);
 
     marker("常量说明");
     return ok_;
@@ -73,13 +155,13 @@ bool Parser::parse_constant_definition() {
         return ok_;
     }
 
-    syntax_error(current_, "期望 int 或 char");
+    syntax_error(current(), "期望 int 或 char");
     return false;
 }
 
 bool Parser::parse_integer() {
-    if (current_.kind == lexer::TokenKind::Plus ||
-        current_.kind == lexer::TokenKind::Minus) {
+    if (current().kind == lexer::TokenKind::Plus ||
+        current().kind == lexer::TokenKind::Minus) {
         advance();
     }
     if (!parse_unsigned_integer()) {
@@ -102,18 +184,18 @@ bool Parser::parse_character() {
 }
 
 bool Parser::parse_constant() {
-    if (current_.kind == lexer::TokenKind::IntConstant ||
-        current_.kind == lexer::TokenKind::Plus ||
-        current_.kind == lexer::TokenKind::Minus) {
+    if (current().kind == lexer::TokenKind::IntConstant ||
+        current().kind == lexer::TokenKind::Plus ||
+        current().kind == lexer::TokenKind::Minus) {
         if (!parse_integer()) {
             return false;
         }
-    } else if (current_.kind == lexer::TokenKind::CharConstant) {
+    } else if (current().kind == lexer::TokenKind::CharConstant) {
         if (!parse_character()) {
             return false;
         }
     } else {
-        syntax_error(current_, "期望常量");
+        syntax_error(current(), "期望常量");
         return false;
     }
 
@@ -121,56 +203,163 @@ bool Parser::parse_constant() {
     return ok_;
 }
 
-bool Parser::advance() {
-    if (!ok_) {
-        return false;
-    }
-    if (current_.kind != lexer::TokenKind::End && out_ != nullptr) {
-        *out_ << lexer::token_code(current_.kind) << ' ' << current_.lexeme << '\n';
-    }
-    current_ = lexer_.next_token();
-    if (current_.kind == lexer::TokenKind::Error) {
-        ok_ = false;  // 词法错误已由 Lexer 回调上报
-        return false;
-    }
-    return true;
-}
+// ---------------------------------------------------------------- 变量
 
-bool Parser::match(lexer::TokenKind kind) {
-    if (current_.kind != kind) {
-        return false;
-    }
-    return advance();
-}
-
-bool Parser::expect(lexer::TokenKind kind, const std::string& context) {
-    if (match(kind)) {
+bool Parser::parse_type_identifier() {
+    if (match(lexer::TokenKind::KeywordInt) ||
+        match(lexer::TokenKind::KeywordChar)) {
         return true;
     }
-    syntax_error(current_, "期望" + context);
+    syntax_error(current(), "期望类型标识符 int 或 char");
     return false;
 }
 
-void Parser::marker(const std::string& name) {
-    if (ok_ && out_ != nullptr) {
-        *out_ << '<' << name << ">\n";
+bool Parser::parse_declarator(int& dimensions) {
+    dimensions = 0;
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
     }
+
+    if (match(lexer::TokenKind::LBracket)) {
+        if (!parse_unsigned_integer()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+            return false;
+        }
+        dimensions = 1;
+
+        if (match(lexer::TokenKind::LBracket)) {
+            if (!parse_unsigned_integer()) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+                return false;
+            }
+            dimensions = 2;
+        }
+    }
+    return ok_;
 }
 
-void Parser::syntax_error(const lexer::Token& token, const std::string& message) {
-    if (!ok_) {
-        return;
+bool Parser::parse_variable_initializer(int dimensions) {
+    if (dimensions == 0) {
+        return parse_constant();
     }
-    ok_ = false;
-    if (!on_error_) {
-        return;
+
+    if (!expect(lexer::TokenKind::LBrace, "{")) {
+        return false;
     }
-    common::Diagnostic diagnostic;
-    diagnostic.line = token.line;
-    diagnostic.column = token.column;
-    diagnostic.code = '\0';  // 语法错误：实验三再分配类别码
-    diagnostic.message = message;
-    on_error_(diagnostic);
+
+    auto parse_constant_list = [this]() -> bool {
+        if (!parse_constant()) {
+            return false;
+        }
+        while (ok_ && match(lexer::TokenKind::Comma)) {
+            if (!parse_constant()) {
+                return false;
+            }
+        }
+        return ok_;
+    };
+
+    if (dimensions == 1) {
+        if (!parse_constant_list()) {
+            return false;
+        }
+        return expect(lexer::TokenKind::RBrace, "}");
+    }
+
+    // 二维：{ { consts } {, { consts }} }
+    if (!expect(lexer::TokenKind::LBrace, "{")) {
+        return false;
+    }
+    if (!parse_constant_list()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RBrace, "}")) {
+        return false;
+    }
+
+    while (ok_ && match(lexer::TokenKind::Comma)) {
+        if (!expect(lexer::TokenKind::LBrace, "{")) {
+            return false;
+        }
+        if (!parse_constant_list()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::RBrace, "}")) {
+            return false;
+        }
+    }
+
+    return expect(lexer::TokenKind::RBrace, "}");
+}
+
+bool Parser::parse_variable_definition() {
+    if (!parse_type_identifier()) {
+        return false;
+    }
+
+    int dimensions = 0;
+    if (!parse_declarator(dimensions)) {
+        return false;
+    }
+
+    if (current().kind == lexer::TokenKind::Assign) {
+        advance();  // '='
+        if (!parse_variable_initializer(dimensions)) {
+            return false;
+        }
+        marker("变量定义及初始化");
+        marker("变量定义");
+        return ok_;
+    }
+
+    // 无初始化：允许逗号分隔的多个声明符
+    while (ok_ && match(lexer::TokenKind::Comma)) {
+        int more_dimensions = 0;
+        if (!parse_declarator(more_dimensions)) {
+            return false;
+        }
+    }
+
+    marker("变量定义无初始化");
+    marker("变量定义");
+    return ok_;
+}
+
+bool Parser::can_start_variable() {
+    if (current().kind != lexer::TokenKind::KeywordInt &&
+        current().kind != lexer::TokenKind::KeywordChar) {
+        return false;
+    }
+    if (peek_token(1).kind != lexer::TokenKind::Identifier) {
+        return false;
+    }
+    // 类型 名字 ( 是函数定义，不是变量定义。
+    return peek_token(2).kind != lexer::TokenKind::LParen;
+}
+
+bool Parser::parse_variable_declaration() {
+    if (!parse_variable_definition()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+        return false;
+    }
+
+    while (ok_ && can_start_variable()) {
+        if (!parse_variable_definition()) {
+            return false;
+        }
+        if (!expect(lexer::TokenKind::Semicolon, "分号")) {
+            return false;
+        }
+    }
+
+    marker("变量说明");
+    return ok_;
 }
 
 }  // namespace parser

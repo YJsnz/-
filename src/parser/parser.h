@@ -1,6 +1,8 @@
-// 递归下降语法分析框架（P2-1）
+// 递归下降语法分析框架
 #pragma once
 
+#include <cstddef>
+#include <deque>
 #include <functional>
 #include <ostream>
 #include <string>
@@ -19,11 +21,10 @@ public:
     Parser(lexer::Lexer& lexer, std::ostream* out,
            SyntaxErrorCallback on_error = {});
 
-    // P2-1 临时实现：消费全部单词。P2-2 起替换为真实语法分析。
     bool parse_program();
 
-    const lexer::Token& current() const { return current_; }
-    bool at_end() const { return current_.kind == lexer::TokenKind::End; }
+    const lexer::Token& current() const { return lookahead_.front(); }
+    bool at_end() const { return lookahead_.front().kind == lexer::TokenKind::End; }
     bool ok() const { return ok_; }
 
 protected:
@@ -37,7 +38,10 @@ protected:
     void marker(const std::string& name);
     void syntax_error(const lexer::Token& token, const std::string& message);
 
-    // 产生式（P2-2 起逐步实现）
+    // 向前查看第 k 个单词（k=0 为当前单词），不输出。
+    const lexer::Token& peek_token(std::size_t k);
+
+    // 产生式（按 TODO 逐步实现）
     bool parse_constant_declaration();  // <常量说明>
     bool parse_constant_definition();   // <常量定义>
     bool parse_integer();               // <整数>
@@ -45,11 +49,21 @@ protected:
     bool parse_character();             // <字符>（不输出成分名）
     bool parse_constant();              // <常量>
 
+    bool parse_variable_declaration();  // <变量说明>
+    bool parse_variable_definition();   // <变量定义>
+    bool parse_type_identifier();       // <类型标识符>（不输出成分名）
+    bool parse_declarator(int& dimensions);
+    bool parse_variable_initializer(int dimensions);
+    bool can_start_variable();
+
 private:
+    void fill_to(std::size_t k);
+
     lexer::Lexer& lexer_;
     std::ostream* out_;
     SyntaxErrorCallback on_error_;
-    lexer::Token current_;
+    std::deque<lexer::Token> lookahead_;
+    bool eof_ = false;
     bool ok_ = true;
 };
 

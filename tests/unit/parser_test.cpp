@@ -32,6 +32,10 @@ public:
     using parser::Parser::parse_constant_declaration;
     using parser::Parser::parse_constant_definition;
     using parser::Parser::parse_integer;
+    using parser::Parser::can_start_variable;
+    using parser::Parser::parse_variable_declaration;
+    using parser::Parser::parse_variable_definition;
+    using parser::Parser::peek_token;
 };
 
 }  // namespace
@@ -177,6 +181,95 @@ int main() {
         TestParser parser(lexer, &out);
 
         check(!parser.parse_constant(), "非常量输入解析失败");
+    }
+    {
+        lexer::Lexer lexer("int a;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_variable_declaration(), "简单变量声明解析成功");
+        check(parser.at_end(), "变量声明消费完所有单词");
+        const std::string expected =
+            "INTTK int\n"
+            "IDENFR a\n"
+            "<变量定义无初始化>\n"
+            "<变量定义>\n"
+            "SEMICN ;\n"
+            "<变量说明>\n";
+        check(out.str() == expected, "变量声明与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("int a, b[2]; char c;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_variable_declaration(), "多变量与一维数组声明成功");
+        const std::string expected =
+            "INTTK int\n"
+            "IDENFR a\n"
+            "COMMA ,\n"
+            "IDENFR b\n"
+            "LBRACK [\n"
+            "INTCON 2\n"
+            "<无符号整数>\n"
+            "RBRACK ]\n"
+            "<变量定义无初始化>\n"
+            "<变量定义>\n"
+            "SEMICN ;\n"
+            "CHARTK char\n"
+            "IDENFR c\n"
+            "<变量定义无初始化>\n"
+            "<变量定义>\n"
+            "SEMICN ;\n"
+            "<变量说明>\n";
+        check(out.str() == expected, "逗号分隔与数组维度输出正确");
+    }
+    {
+        lexer::Lexer lexer("int a = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_variable_declaration(), "简单变量初始化解析成功");
+        const std::string expected =
+            "INTTK int\n"
+            "IDENFR a\n"
+            "ASSIGN =\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<常量>\n"
+            "<变量定义及初始化>\n"
+            "<变量定义>\n"
+            "SEMICN ;\n"
+            "<变量说明>\n";
+        check(out.str() == expected, "初始化变量与成分名顺序正确");
+    }
+    {
+        lexer::Lexer lexer("int m[2][2] = {{1, 2}, {3, 4}};");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_variable_declaration(), "二维数组初始化解析成功");
+        check(out.str().find("<变量定义及初始化>\n<变量定义>\nSEMICN ;\n<变量说明>\n") !=
+                  std::string::npos,
+              "二维数组初始化标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("int f(int a)");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.can_start_variable(), "函数定义不会被识别为变量定义");
+
+        lexer::Lexer lexer2("int a;");
+        std::ostringstream out2;
+        TestParser parser2(lexer2, &out2);
+        check(parser2.can_start_variable(), "普通变量声明可被识别");
+    }
+    {
+        lexer::Lexer lexer("int = 1;");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_variable_declaration(), "缺少变量名时解析失败");
     }
 
     if (failures == 0) {

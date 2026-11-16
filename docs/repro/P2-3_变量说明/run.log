@@ -1,0 +1,151 @@
+# P2-3 变量说明与变量定义验证
+# 时间: 2026-11-16 11:53:01
+# 提交: ded484c
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/test_unit.sh parser
+编译 tests/unit/parser_test.cpp
+运行 build/unit/parser_test
+[PASS] 构造后已预读首个单词
+[PASS] 预读不输出
+[PASS] advance 成功
+[PASS] 消费时输出当前单词
+[PASS] advance 后预读下一个单词
+[PASS] marker 输出成分名
+[PASS] 第二个单词按序输出
+[PASS] 消费完毕到达文件尾
+[PASS] expect 匹配成功并消费
+[PASS] expect 不匹配返回 false
+[PASS] expect 失败后 ok 为假
+[PASS] 语法错误触发回调
+[PASS] 语法错误位置为当前单词
+[PASS] 语法错误类别码暂未分类
+[PASS] match 命中并消费
+[PASS] match 未命中返回 false
+[PASS] match 命中时输出被消费的单词
+[PASS] 首个词法单元为 Error 时 ok 为假
+[PASS] 词法错误时不输出单词
+[PASS] 失败后 marker 不输出
+[PASS] 常量说明解析成功
+[PASS] 常量说明消费完所有单词
+[PASS] 常量说明与成分名顺序正确
+[PASS] 带 + 的整数解析成功
+[PASS] 整数输出顺序正确
+[PASS] 字符常量解析成功
+[PASS] 字符常量输出 <常量>
+[PASS] 缺少标识符时解析失败
+[PASS] 失败后 ok 为假
+[PASS] 语法错误被上报
+[PASS] char 常量类型不匹配时失败
+[PASS] 非常量输入解析失败
+[PASS] 简单变量声明解析成功
+[PASS] 变量声明消费完所有单词
+[PASS] 变量声明与成分名顺序正确
+[PASS] 多变量与一维数组声明成功
+[PASS] 逗号分隔与数组维度输出正确
+[PASS] 简单变量初始化解析成功
+[PASS] 初始化变量与成分名顺序正确
+[PASS] 二维数组初始化解析成功
+[PASS] 二维数组初始化标记顺序正确
+[PASS] 函数定义不会被识别为变量定义
+[PASS] 普通变量声明可被识别
+[PASS] 缺少变量名时解析失败
+全部通过
+[exit 0]
+
+$ cd tests/tmp/P2-3-demo && ../../../build/compiler --dump-parser && cat output.txt
+INTTK int
+IDENFR a
+<变量定义无初始化>
+<变量定义>
+SEMICN ;
+INTTK int
+IDENFR b
+LBRACK [
+INTCON 2
+<无符号整数>
+RBRACK ]
+<变量定义无初始化>
+<变量定义>
+SEMICN ;
+INTTK int
+IDENFR c
+ASSIGN =
+INTCON 1
+<无符号整数>
+<整数>
+<常量>
+<变量定义及初始化>
+<变量定义>
+SEMICN ;
+INTTK int
+IDENFR m
+LBRACK [
+INTCON 2
+<无符号整数>
+RBRACK ]
+LBRACK [
+INTCON 2
+<无符号整数>
+RBRACK ]
+ASSIGN =
+LBRACE {
+LBRACE {
+INTCON 1
+<无符号整数>
+<整数>
+<常量>
+COMMA ,
+INTCON 2
+<无符号整数>
+<整数>
+<常量>
+RBRACE }
+COMMA ,
+LBRACE {
+INTCON 3
+<无符号整数>
+<整数>
+<常量>
+COMMA ,
+INTCON 4
+<无符号整数>
+<整数>
+<常量>
+RBRACE }
+RBRACE }
+<变量定义及初始化>
+<变量定义>
+SEMICN ;
+<变量说明>
+[exit 0]
+
+$ wc -l tests/tmp/P2-3-demo/output.txt
+64 tests/tmp/P2-3-demo/output.txt
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 6
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+----------------------------------------
+共 9 个用例：9 通过，0 失败
+[exit 0]
