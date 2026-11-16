@@ -1438,9 +1438,18 @@ bool Parser::parse_switch_statement() {
         return false;
     }
 
-    if (!parse_default_clause()) {
-        return false;
+    if (current().kind == lexer::TokenKind::KeywordDefault) {
+        if (!parse_default_clause()) {
+            return false;
+        }
+    } else if (recovery_) {
+        syntax_error('p', current(), "switch 语句缺少 default 子句");
+    } else {
+        if (!parse_default_clause()) {
+            return false;
+        }
     }
+
     if (!expect(lexer::TokenKind::RBrace, "右花括号 }")) {
         return false;
     }

@@ -2223,6 +2223,45 @@ int main() {
         check(parsed, "char switch 字符 case 程序解析成功");
         check(!has_any_error(diagnostics, 'o'), "char switch 字符 case 不报 o");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 1:\nx = 1;\n}\n}\n", parsed);
+        check(parsed, "switch 缺 default 程序仍可继续解析");
+        check(has_error(diagnostics, 'p', 6), "switch 缺 default 报 p");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 1:\nx = 1;\ndefault:\nx = 2;\n}\n}\n",
+            parsed);
+        check(parsed, "switch 含 default 程序解析成功");
+        check(!has_any_error(diagnostics, 'p'), "switch 含 default 不报 p");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 1:\nx = 1;\ncase 2:\nx = 2;\n}\n}\n",
+            parsed);
+        check(parsed, "多 case 缺 default 程序仍可继续解析");
+        check(has_error(diagnostics, 'p', 8), "多 case 缺 default 报 p");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x) {\ncase 1:\nswitch (x) {\ncase 2:\nx = 2;\n}\ndefault:\nx = 3;\n}\n}\n",
+            parsed);
+        check(parsed, "嵌套 switch 缺 default 程序仍可继续解析");
+        check(has_error(diagnostics, 'p', 8), "内层 switch 缺 default 报 p");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){\nint x;\nswitch (x) {\ncase 1:\nx = 1;\n}\n}\nvoid main(){\n}\n",
+            parsed);
+        check(parsed, "函数内 switch 缺 default 程序仍可继续解析");
+        check(has_error(diagnostics, 'p', 6), "函数内 switch 缺 default 报 p");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
