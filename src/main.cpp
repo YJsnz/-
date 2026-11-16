@@ -7,7 +7,7 @@
 #include <iterator>
 #include <string>
 
-#include "lexer/scanner.h"
+#include "lexer/lexer.h"
 
 namespace {
 
@@ -89,8 +89,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // 扫描器已接通；P1-3 将基于它产生单词。
-    lexer::Scanner scanner(source);
-    (void)scanner;
+    lexer::Lexer lexer(source);
+    for (;;) {
+        const lexer::Token token = lexer.next_token();
+        if (token.kind == lexer::TokenKind::End) {
+            break;
+        }
+        if (token.kind == lexer::TokenKind::Error) {
+            std::cerr << "词法错误（" << token.line << ":" << token.column
+                      << "）：" << token.message << "\n";
+            return 1;
+        }
+        out << lexer::token_code(token.kind) << ' ' << token.lexeme << '\n';
+    }
     return 0;
 }

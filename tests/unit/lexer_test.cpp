@@ -1,0 +1,153 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "lexer/lexer.h"
+
+namespace {
+
+int failures = 0;
+
+void check(bool condition, const std::string& name) {
+    if (condition) {
+        std::cout << "[PASS] " << name << "\n";
+    } else {
+        std::cout << "[FAIL] " << name << "\n";
+        ++failures;
+    }
+}
+
+lexer::Token first_token(const std::string& source) {
+    lexer::Lexer lexer(source);
+    return lexer.next_token();
+}
+
+std::vector<lexer::Token> all_tokens(const std::string& source) {
+    lexer::Lexer lexer(source);
+    std::vector<lexer::Token> tokens;
+    for (;;) {
+        const lexer::Token token = lexer.next_token();
+        tokens.push_back(token);
+        if (token.kind == lexer::TokenKind::End || token.kind == lexer::TokenKind::Error) {
+            break;
+        }
+    }
+    return tokens;
+}
+
+}  // namespace
+
+int main() {
+    {
+        const lexer::Token t = first_token("abc");
+        check(t.kind == lexer::TokenKind::Identifier && t.lexeme == "abc",
+              "abc 识别为标识符");
+        check(t.line == 1 && t.column == 1, "标识符位置为 1:1");
+    }
+    {
+        check(first_token("a1_b2").kind == lexer::TokenKind::Identifier,
+              "标识符可包含数字与下划线");
+        check(first_token("_x").kind == lexer::TokenKind::Identifier,
+              "下划线可作为首字符");
+    }
+    {
+        const lexer::Token t = first_token("coNst");
+        check(t.kind == lexer::TokenKind::KeywordConst, "coNst 识别为 const 保留字");
+        check(t.lexeme == "coNst", "保留字原文原样保留");
+    }
+    {
+        check(first_token("CONST").kind == lexer::TokenKind::KeywordConst,
+              "大写 CONST 识别为保留字");
+        check(first_token("iF").kind == lexer::TokenKind::KeywordIf,
+              "混合大小写 iF 识别为 if");
+    }
+    {
+        check(first_token("constx").kind == lexer::TokenKind::Identifier,
+              "constx 不是保留字");
+        check(first_token("if1").kind == lexer::TokenKind::Identifier,
+              "if1 不是保留字");
+        check(first_token("else_").kind == lexer::TokenKind::Identifier,
+              "else_ 不是保留字");
+    }
+    {
+        struct KeywordCase {
+            const char* text;
+            lexer::TokenKind kind;
+        };
+        const KeywordCase keywords[] = {
+            {"const", lexer::TokenKind::KeywordConst},
+            {"int", lexer::TokenKind::KeywordInt},
+            {"char", lexer::TokenKind::KeywordChar},
+            {"void", lexer::TokenKind::KeywordVoid},
+            {"main", lexer::TokenKind::KeywordMain},
+            {"if", lexer::TokenKind::KeywordIf},
+            {"else", lexer::TokenKind::KeywordElse},
+            {"switch", lexer::TokenKind::KeywordSwitch},
+            {"case", lexer::TokenKind::KeywordCase},
+            {"default", lexer::TokenKind::KeywordDefault},
+            {"while", lexer::TokenKind::KeywordWhile},
+            {"for", lexer::TokenKind::KeywordFor},
+            {"scanf", lexer::TokenKind::KeywordScanf},
+            {"printf", lexer::TokenKind::KeywordPrintf},
+            {"return", lexer::TokenKind::KeywordReturn},
+        };
+
+        bool all_lower = true;
+        bool all_upper = true;
+        for (const KeywordCase& kc : keywords) {
+            if (first_token(kc.text).kind != kc.kind) {
+                all_lower = false;
+            }
+            std::string upper(kc.text);
+            for (char& c : upper) {
+                if (c >= 'a' && c <= 'z') {
+                    c = static_cast<char>(c - 'a' + 'A');
+                }
+            }
+            if (first_token(upper).kind != kc.kind) {
+                all_upper = false;
+            }
+        }
+        check(all_lower, "15 个保留字小写全部识别");
+        check(all_upper, "15 个保留字大写全部识别");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("  int x\n  if");
+        check(tokens.size() == 4, "位置测试得到 3 个单词和一个 End");
+        check(tokens.size() == 4 && tokens[0].kind == lexer::TokenKind::KeywordInt &&
+                  tokens[0].line == 1 && tokens[0].column == 3,
+              "int 位于 1:3");
+        check(tokens.size() == 4 && tokens[1].kind == lexer::TokenKind::Identifier &&
+                  tokens[1].line == 1 && tokens[1].column == 7,
+              "x 位于 1:7");
+        check(tokens.size() == 4 && tokens[2].kind == lexer::TokenKind::KeywordIf &&
+                  tokens[2].line == 2 && tokens[2].column == 3,
+              "if 位于 2:3");
+        check(tokens.size() == 4 && tokens[3].kind == lexer::TokenKind::End,
+              "末尾返回 End");
+    }
+    {
+        const lexer::Token t = first_token("@");
+        check(t.kind == lexer::TokenKind::Error, "非法字符返回 Error");
+        check(t.line == 1 && t.column == 1 && t.lexeme == "@",
+              "Error 记录位置与原字符");
+    }
+    {
+        check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
+              "标识符类别码为 IDENFR");
+        check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",
+              "const 类别码为 CONSTTK");
+        check(std::string(lexer::token_code(lexer::TokenKind::KeywordReturn)) == "RETURNTK",
+              "return 类别码为 RETURNTK");
+    }
+    {
+        check(first_token("").kind == lexer::TokenKind::End, "空输入立即返回 End");
+    }
+
+    if (failures == 0) {
+        std::cout << "全部通过\n";
+        return 0;
+    }
+    std::cout << failures << " 项失败\n";
+    return 1;
+}

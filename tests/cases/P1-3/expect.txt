@@ -1,0 +1,5 @@
+CONSTTK coNst
+INTTK int
+IDENFR x
+IFTK IF
+IDENFR elsex
