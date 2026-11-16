@@ -993,14 +993,17 @@ bool Parser::parse_factor() {
 }
 
 bool Parser::parse_value_parameter_list() {
+    last_argument_count_ = 0;
     if (current().kind != lexer::TokenKind::RParen) {
         if (!parse_expression()) {
             return false;
         }
+        ++last_argument_count_;
         while (ok_ && match(lexer::TokenKind::Comma)) {
             if (!parse_expression()) {
                 return false;
             }
+            ++last_argument_count_;
         }
     }
 
@@ -1013,12 +1016,16 @@ bool Parser::parse_function_call() {
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
-    (void)lookup_or_report(name_token, true);
+    const semantic::Symbol* symbol = lookup_or_report(name_token, true);
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
     if (!parse_value_parameter_list()) {
         return false;
+    }
+    if (recovery_ && symbol != nullptr &&
+        last_argument_count_ != static_cast<int>(symbol->parameter_types.size())) {
+        syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
@@ -1033,12 +1040,16 @@ bool Parser::parse_call_statement(bool returns_value) {
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
-    (void)lookup_or_report(name_token, true);
+    const semantic::Symbol* symbol = lookup_or_report(name_token, true);
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
     if (!parse_value_parameter_list()) {
         return false;
+    }
+    if (recovery_ && symbol != nullptr &&
+        last_argument_count_ != static_cast<int>(symbol->parameter_types.size())) {
+        syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
     }
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;

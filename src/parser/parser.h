@@ -117,6 +117,7 @@ private:
     semantic::DataType last_type_ = semantic::DataType::Unknown;
     lexer::Token last_declarator_token_;
     std::vector<ParameterInfo> last_parameters_;
+    int last_argument_count_ = 0;
     bool eof_ = false;
     bool ok_ = true;
     bool recovery_ = false;

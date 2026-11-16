@@ -1276,6 +1276,126 @@ int main() {
         }
         check(!found, "已定义名字不报 c");
     }
+    {
+        lexer::Lexer lexer(
+            "int f(int a, int b){\n"
+            "return(a+b);\n"
+            "}\n"
+            "void main(){\n"
+            "f(1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "实参过少程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'd' && d.line == 5) {
+                found = true;
+            }
+        }
+        check(found, "实参少于形参报 d");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(int a, int b){\n"
+            "return(a+b);\n"
+            "}\n"
+            "void main(){\n"
+            "f(1, 2, 3);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "实参过多程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'd' && d.line == 5) {
+                found = true;
+            }
+        }
+        check(found, "实参多于形参报 d");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(int a, int b){\n"
+            "return(a+b);\n"
+            "}\n"
+            "void main(){\n"
+            "f(1, 2);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "参数个数正确程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'd') {
+                found = true;
+            }
+        }
+        check(!found, "参数个数正确不报 d");
+    }
+    {
+        lexer::Lexer lexer(
+            "void g(){\n"
+            "}\n"
+            "void main(){\n"
+            "g(1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "空形参函数带实参程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'd' && d.line == 4) {
+                found = true;
+            }
+        }
+        check(found, "空形参函数带实参报 d");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(int a, int b){\n"
+            "return(a+b);\n"
+            "}\n"
+            "void main(){\n"
+            "int x;\n"
+            "x = f(1);\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& d) {
+                              diagnostics.push_back(d);
+                          },
+                          true);
+        check(parser.parse_program(), "表达式内实参过少程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& d : diagnostics) {
+            if (d.code == 'd' && d.line == 6) {
+                found = true;
+            }
+        }
+        check(found, "表达式内函数调用实参不匹配报 d");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
