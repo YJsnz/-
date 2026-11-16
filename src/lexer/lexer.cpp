@@ -111,11 +111,7 @@ Token Lexer::next_token() {
         return scan_string_constant();
     }
 
-    token.kind = TokenKind::Error;
-    token.lexeme = std::string(1, scanner_.advance());
-    token.message = "未识别的字符 '" + token.lexeme +
-                    "'（运算符与界符将在后续任务支持）";
-    return token;
+    return scan_operator_or_delimiter();
 }
 
 Token Lexer::scan_identifier_or_keyword() {
@@ -229,6 +225,96 @@ Token Lexer::scan_string_constant() {
 
         content.push_back(scanner_.advance());
     }
+}
+
+Token Lexer::scan_operator_or_delimiter() {
+    Token token;
+    token.line = scanner_.line();
+    token.column = scanner_.column();
+
+    token.lexeme.push_back(scanner_.advance());
+    const char c = token.lexeme[0];
+
+    switch (c) {
+        case '+':
+            token.kind = TokenKind::Plus;
+            break;
+        case '-':
+            token.kind = TokenKind::Minus;
+            break;
+        case '*':
+            token.kind = TokenKind::Star;
+            break;
+        case '/':
+            token.kind = TokenKind::Slash;
+            break;
+        case '=':
+            if (scanner_.peek() == '=') {
+                token.lexeme.push_back(scanner_.advance());
+                token.kind = TokenKind::Equal;
+            } else {
+                token.kind = TokenKind::Assign;
+            }
+            break;
+        case '<':
+            if (scanner_.peek() == '=') {
+                token.lexeme.push_back(scanner_.advance());
+                token.kind = TokenKind::LessEqual;
+            } else {
+                token.kind = TokenKind::Less;
+            }
+            break;
+        case '>':
+            if (scanner_.peek() == '=') {
+                token.lexeme.push_back(scanner_.advance());
+                token.kind = TokenKind::GreaterEqual;
+            } else {
+                token.kind = TokenKind::Greater;
+            }
+            break;
+        case '!':
+            if (scanner_.peek() == '=') {
+                token.lexeme.push_back(scanner_.advance());
+                token.kind = TokenKind::NotEqual;
+            } else {
+                token.kind = TokenKind::Error;
+                token.message = "未识别的字符 '!'（只有 '!=' 是合法运算符）";
+            }
+            break;
+        case ';':
+            token.kind = TokenKind::Semicolon;
+            break;
+        case ',':
+            token.kind = TokenKind::Comma;
+            break;
+        case '(':
+            token.kind = TokenKind::LParen;
+            break;
+        case ')':
+            token.kind = TokenKind::RParen;
+            break;
+        case '[':
+            token.kind = TokenKind::LBracket;
+            break;
+        case ']':
+            token.kind = TokenKind::RBracket;
+            break;
+        case '{':
+            token.kind = TokenKind::LBrace;
+            break;
+        case '}':
+            token.kind = TokenKind::RBrace;
+            break;
+        case ':':
+            token.kind = TokenKind::Colon;
+            break;
+        default:
+            token.kind = TokenKind::Error;
+            token.message = "未识别的字符 '" + token.lexeme + "'";
+            break;
+    }
+
+    return token;
 }
 
 }  // namespace lexer

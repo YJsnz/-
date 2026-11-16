@@ -20,6 +20,7 @@ private:
     Token scan_number();
     Token scan_char_constant();
     Token scan_string_constant();
+    Token scan_operator_or_delimiter();
 
     Scanner scanner_;
 };

@@ -12,6 +12,46 @@ const char* token_code(TokenKind kind) {
             return "CHARCON";
         case TokenKind::StringConstant:
             return "STRCON";
+        case TokenKind::Plus:
+            return "PLUS";
+        case TokenKind::Minus:
+            return "MINU";
+        case TokenKind::Star:
+            return "MULT";
+        case TokenKind::Slash:
+            return "DIV";
+        case TokenKind::Assign:
+            return "ASSIGN";
+        case TokenKind::Less:
+            return "LSS";
+        case TokenKind::LessEqual:
+            return "LEQ";
+        case TokenKind::Greater:
+            return "GRE";
+        case TokenKind::GreaterEqual:
+            return "GEQ";
+        case TokenKind::Equal:
+            return "EQL";
+        case TokenKind::NotEqual:
+            return "NEQ";
+        case TokenKind::Colon:
+            return "COLON";
+        case TokenKind::Semicolon:
+            return "SEMICN";
+        case TokenKind::Comma:
+            return "COMMA";
+        case TokenKind::LParen:
+            return "LPARENT";
+        case TokenKind::RParen:
+            return "RPARENT";
+        case TokenKind::LBracket:
+            return "LBRACK";
+        case TokenKind::RBracket:
+            return "RBRACK";
+        case TokenKind::LBrace:
+            return "LBRACE";
+        case TokenKind::RBrace:
+            return "RBRACE";
         case TokenKind::KeywordConst:
             return "CONSTTK";
         case TokenKind::KeywordInt:

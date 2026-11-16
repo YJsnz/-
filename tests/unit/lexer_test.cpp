@@ -259,6 +259,78 @@ int main() {
               "字符串类别码为 STRCON");
     }
     {
+        const std::vector<lexer::Token> tokens = all_tokens("<= >= == !=");
+        check(tokens.size() == 5, "四个双字符运算符 + End");
+        check(tokens.size() == 5 && tokens[0].kind == lexer::TokenKind::LessEqual &&
+                  tokens[0].lexeme == "<=",
+              "<= 识别为 LEQ");
+        check(tokens.size() == 5 && tokens[1].kind == lexer::TokenKind::GreaterEqual &&
+                  tokens[1].lexeme == ">=",
+              ">= 识别为 GEQ");
+        check(tokens.size() == 5 && tokens[2].kind == lexer::TokenKind::Equal &&
+                  tokens[2].lexeme == "==",
+              "== 识别为 EQL");
+        check(tokens.size() == 5 && tokens[3].kind == lexer::TokenKind::NotEqual &&
+                  tokens[3].lexeme == "!=",
+              "!= 识别为 NEQ");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("< > = !");
+        check(tokens.size() == 4 && tokens[0].kind == lexer::TokenKind::Less &&
+                  tokens[0].lexeme == "<",
+              "单字符 < 识别为 LSS");
+        check(tokens.size() == 4 && tokens[1].kind == lexer::TokenKind::Greater &&
+                  tokens[1].lexeme == ">",
+              "单字符 > 识别为 GRE");
+        check(tokens.size() == 4 && tokens[2].kind == lexer::TokenKind::Assign &&
+                  tokens[2].lexeme == "=",
+              "单字符 = 识别为 ASSIGN");
+        check(tokens.size() == 4 && tokens[3].kind == lexer::TokenKind::Error,
+              "单独的 ! 报错");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("+ - * / ; , ( ) [ ] { } :");
+        const lexer::TokenKind kinds[] = {
+            lexer::TokenKind::Plus,      lexer::TokenKind::Minus,
+            lexer::TokenKind::Star,      lexer::TokenKind::Slash,
+            lexer::TokenKind::Semicolon, lexer::TokenKind::Comma,
+            lexer::TokenKind::LParen,    lexer::TokenKind::RParen,
+            lexer::TokenKind::LBracket,  lexer::TokenKind::RBracket,
+            lexer::TokenKind::LBrace,    lexer::TokenKind::RBrace,
+            lexer::TokenKind::Colon,
+        };
+        bool all_ok = tokens.size() == 14;  // 13 个符号 + End
+        for (std::size_t i = 0; all_ok && i < sizeof(kinds) / sizeof(kinds[0]); ++i) {
+            if (tokens[i].kind != kinds[i]) {
+                all_ok = false;
+            }
+        }
+        check(all_ok, "全部单字符运算符与界符识别");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("a<=b");
+        check(tokens.size() == 4, "a<=b 得到 3 个词法单元 + End");
+        check(tokens.size() == 4 && tokens[1].kind == lexer::TokenKind::LessEqual &&
+                  tokens[1].line == 1 && tokens[1].column == 2,
+              "<= 位于 1:2");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("===");
+        check(tokens.size() == 3 && tokens[0].kind == lexer::TokenKind::Equal &&
+                  tokens[1].kind == lexer::TokenKind::Assign,
+              "=== 拆为 == 与 =");
+    }
+    {
+        check(std::string(lexer::token_code(lexer::TokenKind::LessEqual)) == "LEQ",
+              "<= 类别码为 LEQ");
+        check(std::string(lexer::token_code(lexer::TokenKind::Plus)) == "PLUS",
+              "+ 类别码为 PLUS");
+        check(std::string(lexer::token_code(lexer::TokenKind::Semicolon)) == "SEMICN",
+              "; 类别码为 SEMICN");
+        check(std::string(lexer::token_code(lexer::TokenKind::Colon)) == "COLON",
+              ": 类别码为 COLON");
+    }
+    {
         check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
               "标识符类别码为 IDENFR");
         check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",

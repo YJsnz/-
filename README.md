@@ -13,9 +13,9 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验一（词法分析）进行中**：P1-1～P1-6 已完成，下一次开发：P1-7。
+**实验一（词法分析）进行中**：P1-1～P1-7 已完成，下一次开发：P1-8。
 
-> `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下输出标识符、保留字、无符号整数、字符常量与字符串常量（`类别码 原文`）；运算符与界符尚未支持。
+> `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下输出指导书单词表全部 39 个类别码对应的词法单元（`类别码 原文`）。
 
 ## 快速开始
 
@@ -38,7 +38,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-6）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1-1、P1-3～P1-7）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -77,7 +77,7 @@ python tools/capture.py \
 │       └── lexer.h / .cpp         # 标识符与保留字识别
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
-│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-6）
+│   ├── cases/                     # 功能用例（当前含 P1-1、P1-3～P1-7）
 │   ├── unit/                      # 单元测试（scanner 等）
 │   └── tmp/                       # 运行临时目录（不提交）
 ├── docs/
@@ -117,6 +117,7 @@ python tools/capture.py \
   - [P1-4 无符号整数](docs/repro/P1-4_无符号整数/README.md)
   - [P1-5 字符常量](docs/repro/P1-5_字符常量/README.md)
   - [P1-6 字符串常量](docs/repro/P1-6_字符串常量/README.md)
+  - [P1-7 运算符与界符](docs/repro/P1-7_运算符与界符/README.md)
 
 ## 开发约定（摘要）
 
@@ -128,7 +129,7 @@ python tools/capture.py \
 
 ## 已知限制
 
-- 词法分析已支持标识符、保留字、整数、字符与字符串常量（P1-6）；运算符与界符待 P1-7；
-- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-6 词法用例；
+- 词法分析已覆盖指导书单词表全部 39 个类别码（P1-7）；P1-8～P1-11 将补充单词值/行号、错误接口与官方样例验收；
+- `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-7 词法用例；
 - 语法分析、错误处理、代码生成尚未实现；
 - PCODE 指令集尚未设计（P4-1）。
