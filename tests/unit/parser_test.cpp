@@ -1028,6 +1028,120 @@ int main() {
         check(out.str().find("<无返回值函数调用语句>") != std::string::npos,
               "大小写不同的调用仍识别为无返回值");
     }
+    {
+        lexer::Lexer lexer(
+            "const int a = 1;\n"
+            "const int A = 2;\n"
+            "void main(){}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          },
+                          true);
+
+        check(parser.parse_program(), "重定义程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& diagnostic : diagnostics) {
+            if (diagnostic.code == 'b' && diagnostic.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "大小写不同的同名常量报 b");
+    }
+    {
+        lexer::Lexer lexer(
+            "void main(){\n"
+            "int x;\n"
+            "int X;\n"
+            "}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          },
+                          true);
+
+        check(parser.parse_program(), "同名变量程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& diagnostic : diagnostics) {
+            if (diagnostic.code == 'b' && diagnostic.line == 3) {
+                found = true;
+            }
+        }
+        check(found, "同一作用域同名变量报 b");
+    }
+    {
+        lexer::Lexer lexer(
+            "int x;\n"
+            "void f(){\n"
+            "int x;\n"
+            "}\n"
+            "void main(){}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          },
+                          true);
+
+        check(parser.parse_program(), "跨作用域同名程序解析成功");
+        bool found = false;
+        for (const common::Diagnostic& diagnostic : diagnostics) {
+            if (diagnostic.code == 'b') {
+                found = true;
+            }
+        }
+        check(!found, "不同作用域同名变量不报 b");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(int a, int A){\n"
+            "return(a);\n"
+            "}\n"
+            "void main(){}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          },
+                          true);
+
+        check(parser.parse_program(), "重名参数程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& diagnostic : diagnostics) {
+            if (diagnostic.code == 'b' && diagnostic.line == 1) {
+                found = true;
+            }
+        }
+        check(found, "同名参数报 b");
+    }
+    {
+        lexer::Lexer lexer(
+            "int f(){ return(1); }\n"
+            "int F(){ return(2); }\n"
+            "void main(){}\n");
+        std::ostringstream out;
+        std::vector<common::Diagnostic> diagnostics;
+        TestParser parser(lexer, &out,
+                          [&diagnostics](const common::Diagnostic& diagnostic) {
+                              diagnostics.push_back(diagnostic);
+                          },
+                          true);
+
+        check(parser.parse_program(), "重名函数程序仍可继续解析");
+        bool found = false;
+        for (const common::Diagnostic& diagnostic : diagnostics) {
+            if (diagnostic.code == 'b' && diagnostic.line == 2) {
+                found = true;
+            }
+        }
+        check(found, "同名函数报 b");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";

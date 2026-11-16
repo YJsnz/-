@@ -11,6 +11,7 @@
 #include "common/diagnostic.h"
 #include "lexer/lexer.h"
 #include "lexer/token.h"
+#include "semantic/symbol_table.h"
 
 namespace parser {
 
@@ -95,13 +96,25 @@ protected:
     bool parse_call_statement(bool returns_value);  // 函数调用语句
 
 private:
+    struct ParameterInfo {
+        lexer::Token token;
+        semantic::DataType type = semantic::DataType::Int;
+    };
+
     void fill_to(std::size_t k);
+    void define_symbol(const std::string& name, semantic::SymbolKind kind,
+                       semantic::DataType type, int dimensions,
+                       const lexer::Token& where);
 
     lexer::Lexer& lexer_;
     std::ostream* out_;
     SyntaxErrorCallback on_error_;
     std::deque<lexer::Token> lookahead_;
     std::map<std::string, bool> function_returns_;  // 已定义函数：名字(小写) -> 是否返回值
+    semantic::SymbolTable symbols_;
+    semantic::DataType last_type_ = semantic::DataType::Unknown;
+    lexer::Token last_declarator_token_;
+    std::vector<ParameterInfo> last_parameters_;
     bool eof_ = false;
     bool ok_ = true;
     bool recovery_ = false;

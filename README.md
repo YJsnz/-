@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验三（错误处理）进行中**：P3-1～P3-3 已完成，下一次开发：P3-4。
+**实验三（错误处理）进行中**：P3-1～P3-4 已完成，下一次开发：P3-5。
 
 > 当前 `--dump-parser` 已接通语法分析框架（暂时只输出单词）；`--dump-lexer` 仍输出实验一的词法结果。
 
@@ -41,7 +41,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2、P3-3）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2～P3-4）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -87,7 +87,7 @@ python tools/capture.py \
 │       └── symbol_table.h / .cpp  # 作用域栈与符号表（P3-1）
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
-│   ├── cases/                     # 功能用例（当前含 P1 全部、P2-8、P2-13、P3-2、P3-3）
+│   ├── cases/                     # 功能用例（当前含 P1 全部、P2-8、P2-13、P3-2～P3-4）
 │   ├── unit/                      # 单元测试（scanner 等）
 │   └── tmp/                       # 运行临时目录（不提交）
 ├── docs/
@@ -150,6 +150,7 @@ python tools/capture.py \
   - [P3-1 符号表](docs/repro/P3-1_符号表/README.md)
   - [P3-2 错误输出](docs/repro/P3-2_错误输出/README.md)
   - [P3-3 词法错误](docs/repro/P3-3_词法错误/README.md)
+  - [P3-4 名字重定义](docs/repro/P3-4_名字重定义/README.md)
 
 ## 开发约定（摘要）
 
@@ -163,5 +164,5 @@ python tools/capture.py \
 
 - 实验一（词法分析）已完成并打标签 `stage1`；
 - `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-11 词法用例；
-- 实验二（语法分析）已完成（`stage2`）；实验三已支持词法错误 a 与分隔符错误（P3-3），语义错误检查待 P3-4～P3-20；代码生成尚未实现；
+- 实验二（语法分析）已完成（`stage2`）；实验三已支持词法错误 a、分隔符错误与名字重定义 b（P3-4），其余语义错误待 P3-5～P3-20；代码生成尚未实现；
 - PCODE 指令集尚未设计（P4-1）。

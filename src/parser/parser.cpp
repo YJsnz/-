@@ -54,6 +54,19 @@ const lexer::Token& Parser::peek_token(std::size_t k) {
     return lookahead_[k];
 }
 
+void Parser::define_symbol(const std::string& name, semantic::SymbolKind kind,
+                           semantic::DataType type, int dimensions,
+                           const lexer::Token& where) {
+    semantic::Symbol symbol;
+    symbol.name = name;
+    symbol.kind = kind;
+    symbol.type = type;
+    symbol.dimensions = dimensions;
+    if (!symbols_.insert(symbol)) {
+        syntax_error('b', where, "名字重定义：" + name);
+    }
+}
+
 bool Parser::parse_program() {
     if (current().kind == lexer::TokenKind::KeywordConst) {
         parse_constant_declaration();
@@ -196,6 +209,7 @@ bool Parser::parse_constant_declaration() {
 bool Parser::parse_constant_definition() {
     if (match(lexer::TokenKind::KeywordInt)) {
         do {
+            const lexer::Token name_token = current();
             if (!expect(lexer::TokenKind::Identifier, "标识符")) {
                 return false;
             }
@@ -205,6 +219,8 @@ bool Parser::parse_constant_definition() {
             if (!parse_integer()) {
                 return false;
             }
+            define_symbol(name_token.value, semantic::SymbolKind::Constant,
+                          semantic::DataType::Int, 0, name_token);
         } while (ok_ && match(lexer::TokenKind::Comma));
         marker("常量定义");
         return ok_;
@@ -212,6 +228,7 @@ bool Parser::parse_constant_definition() {
 
     if (match(lexer::TokenKind::KeywordChar)) {
         do {
+            const lexer::Token name_token = current();
             if (!expect(lexer::TokenKind::Identifier, "标识符")) {
                 return false;
             }
@@ -221,6 +238,8 @@ bool Parser::parse_constant_definition() {
             if (!expect(lexer::TokenKind::CharConstant, "字符常量")) {
                 return false;
             }
+            define_symbol(name_token.value, semantic::SymbolKind::Constant,
+                          semantic::DataType::Char, 0, name_token);
         } while (ok_ && match(lexer::TokenKind::Comma));
         marker("常量定义");
         return ok_;
@@ -280,8 +299,12 @@ bool Parser::parse_constant() {
 // ---------------------------------------------------------------- 变量
 
 bool Parser::parse_type_identifier() {
-    if (match(lexer::TokenKind::KeywordInt) ||
-        match(lexer::TokenKind::KeywordChar)) {
+    if (match(lexer::TokenKind::KeywordInt)) {
+        last_type_ = semantic::DataType::Int;
+        return true;
+    }
+    if (match(lexer::TokenKind::KeywordChar)) {
+        last_type_ = semantic::DataType::Char;
         return true;
     }
     syntax_error(current(), "期望类型标识符 int 或 char");
@@ -290,6 +313,7 @@ bool Parser::parse_type_identifier() {
 
 bool Parser::parse_declarator(int& dimensions) {
     dimensions = 0;
+    last_declarator_token_ = current();
     if (!expect(lexer::TokenKind::Identifier, "标识符")) {
         return false;
     }
@@ -374,11 +398,16 @@ bool Parser::parse_variable_definition() {
     if (!parse_type_identifier()) {
         return false;
     }
+    const semantic::DataType type = last_type_;
 
     int dimensions = 0;
     if (!parse_declarator(dimensions)) {
         return false;
     }
+    define_symbol(last_declarator_token_.value,
+                  dimensions > 0 ? semantic::SymbolKind::Array
+                                 : semantic::SymbolKind::Variable,
+                  type, dimensions, last_declarator_token_);
 
     if (current().kind == lexer::TokenKind::Assign) {
         advance();  // '='
@@ -396,6 +425,10 @@ bool Parser::parse_variable_definition() {
         if (!parse_declarator(more_dimensions)) {
             return false;
         }
+        define_symbol(last_declarator_token_.value,
+                      more_dimensions > 0 ? semantic::SymbolKind::Array
+                                          : semantic::SymbolKind::Variable,
+                      type, more_dimensions, last_declarator_token_);
     }
 
     marker("变量定义无初始化");
@@ -450,15 +483,22 @@ bool Parser::parse_declaration_header() {
 }
 
 bool Parser::parse_parameter_list() {
+    last_parameters_.clear();
     if (current().kind == lexer::TokenKind::KeywordInt ||
         current().kind == lexer::TokenKind::KeywordChar) {
         do {
             if (!parse_type_identifier()) {
                 return false;
             }
+            const semantic::DataType type = last_type_;
+            const lexer::Token name_token = current();
             if (!expect(lexer::TokenKind::Identifier, "标识符")) {
                 return false;
             }
+            ParameterInfo parameter;
+            parameter.token = name_token;
+            parameter.type = type;
+            last_parameters_.push_back(parameter);
         } while (ok_ && match(lexer::TokenKind::Comma));
     }
 
@@ -711,7 +751,8 @@ bool Parser::is_function_definition_start() {
 bool Parser::parse_function_definition() {
     if (current().kind == lexer::TokenKind::KeywordVoid) {
         advance();  // void
-        const std::string name = to_lower_ascii(current().value);
+        const lexer::Token name_token = current();
+        const std::string name = to_lower_ascii(name_token.value);
         if (!expect(lexer::TokenKind::Identifier, "标识符")) {
             return false;
         }
@@ -722,20 +763,43 @@ bool Parser::parse_function_definition() {
         if (!parse_parameter_list()) {
             return false;
         }
+
+        semantic::Symbol function;
+        function.name = name_token.value;
+        function.kind = semantic::SymbolKind::Function;
+        function.type = semantic::DataType::Void;
+        for (const ParameterInfo& parameter : last_parameters_) {
+            function.parameter_types.push_back(parameter.type);
+        }
+        if (!symbols_.insert(function)) {
+            syntax_error('b', name_token, "名字重定义：" + name_token.value);
+        }
+
+        symbols_.enter_scope();
+        for (const ParameterInfo& parameter : last_parameters_) {
+            define_symbol(parameter.token.value, semantic::SymbolKind::Variable,
+                          parameter.type, 0, parameter.token);
+        }
+
         if (!expect(lexer::TokenKind::RParen, ")")) {
+            symbols_.leave_scope();
             return false;
         }
         if (!parse_compound_statement_body()) {
+            symbols_.leave_scope();
             return false;
         }
+        symbols_.leave_scope();
         marker("无返回值函数定义");
         return ok_;
     }
 
-    const std::string name = to_lower_ascii(peek_token(1).value);
+    const lexer::Token name_token = peek_token(1);
+    const std::string name = to_lower_ascii(name_token.value);
     if (!parse_declaration_header()) {
         return false;
     }
+    const semantic::DataType return_type = last_type_;
     function_returns_[name] = true;
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
@@ -743,12 +807,33 @@ bool Parser::parse_function_definition() {
     if (!parse_parameter_list()) {
         return false;
     }
+
+    semantic::Symbol function;
+    function.name = name_token.value;
+    function.kind = semantic::SymbolKind::Function;
+    function.type = return_type;
+    for (const ParameterInfo& parameter : last_parameters_) {
+        function.parameter_types.push_back(parameter.type);
+    }
+    if (!symbols_.insert(function)) {
+        syntax_error('b', name_token, "名字重定义：" + name_token.value);
+    }
+
+    symbols_.enter_scope();
+    for (const ParameterInfo& parameter : last_parameters_) {
+        define_symbol(parameter.token.value, semantic::SymbolKind::Variable,
+                      parameter.type, 0, parameter.token);
+    }
+
     if (!expect(lexer::TokenKind::RParen, ")")) {
+        symbols_.leave_scope();
         return false;
     }
     if (!parse_compound_statement_body()) {
+        symbols_.leave_scope();
         return false;
     }
+    symbols_.leave_scope();
     marker("有返回值函数定义");
     return ok_;
 }
@@ -770,7 +855,11 @@ bool Parser::parse_main_function() {
     if (!expect(lexer::TokenKind::RParen, ")")) {
         return false;
     }
-    if (!parse_compound_statement_body()) {
+
+    symbols_.enter_scope();
+    const bool body_ok = parse_compound_statement_body();
+    symbols_.leave_scope();
+    if (!body_ok) {
         return false;
     }
 
