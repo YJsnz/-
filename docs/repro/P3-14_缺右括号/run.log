@@ -1,0 +1,84 @@
+# P3-14 缺右小括号类别码 l 验证
+# 时间: 2026-11-16 12:59:20
+# 提交: 55fde2f
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ set -o pipefail; ./scripts/test_unit.sh parser | tail -n 22
+[PASS] if 缺右括号报 l
+[PASS] while 缺右括号程序仍可继续解析
+[PASS] while 缺右括号报 l
+[PASS] for 缺右括号程序仍可继续解析
+[PASS] for 缺右括号报 l
+[PASS] switch 缺右括号程序仍可继续解析
+[PASS] switch 缺右括号报 l
+[PASS] 函数定义缺右括号程序仍可继续解析
+[PASS] 函数定义缺右括号报 l
+[PASS] 主函数缺右括号程序仍可继续解析
+[PASS] 主函数缺右括号报 l
+[PASS] 函数调用缺右括号程序仍可继续解析
+[PASS] 函数调用缺右括号报 l
+[PASS] return 缺右括号程序仍可继续解析
+[PASS] return 缺右括号报 l
+[PASS] 括号表达式缺右括号程序仍可继续解析
+[PASS] 括号表达式缺右括号报 l
+[PASS] scanf 缺右括号程序仍可继续解析
+[PASS] scanf 缺右括号报 l
+[PASS] 括号完整程序解析成功
+[PASS] 括号完整不报 l
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh P3-14
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P3-14
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ cat tests/tmp/P3-14/error.txt
+3 l
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 7
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+[PASS] P1-10
+[PASS] P1-3
+[PASS] P1-4
+[PASS] P1-5
+[PASS] P1-6
+[PASS] P1-7
+[PASS] P1-8
+[PASS] P1-9
+[PASS] P2-13
+[PASS] P2-8
+[PASS] P3-10
+[PASS] P3-11
+[PASS] P3-12
+[PASS] P3-13
+[PASS] P3-14
+[PASS] P3-2
+[PASS] P3-3
+[PASS] P3-4
+[PASS] P3-5
+[PASS] P3-6
+[PASS] P3-7
+[PASS] P3-8
+[PASS] P3-9
+----------------------------------------
+共 24 个用例：24 通过，0 失败
+[exit 0]

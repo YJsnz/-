@@ -1937,6 +1937,85 @@ int main() {
         check(parsed, "分号完整程序解析成功");
         check(!has_any_error(diagnostics, 'k'), "分号完整不报 k");
     }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nif (x < 1 {\n}\n}\n", parsed);
+        check(parsed, "if 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "if 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nwhile (x < 1 {\n}\n}\n", parsed);
+        check(parsed, "while 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "while 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint i;\nfor (i = 0; i < 3; i = i + 1 {\n}\n}\n",
+            parsed);
+        check(parsed, "for 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "for 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nswitch (x {\ncase 1:\nx = 1;\ndefault:\nx = 2;\n}\n}\n",
+            parsed);
+        check(parsed, "switch 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "switch 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(int a {\nreturn(1);\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "函数定义缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 1), "函数定义缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main( {\n}\n", parsed);
+        check(parsed, "主函数缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 1), "主函数缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void g(){\n}\nvoid main(){\ng(1;\n}\n", parsed);
+        check(parsed, "函数调用缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 4), "函数调用缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int f(){\nreturn(1;\n}\nvoid main(){\n}\n", parsed);
+        check(parsed, "return 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 2), "return 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nx = (1 + 2;\n}\n", parsed);
+        check(parsed, "括号表达式缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "括号表达式缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nscanf(x;\n}\n", parsed);
+        check(parsed, "scanf 缺右括号程序仍可继续解析");
+        check(has_error(diagnostics, 'l', 3), "scanf 缺右括号报 l");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\nint x;\nx = (1 + 2);\n}\n", parsed);
+        check(parsed, "括号完整程序解析成功");
+        check(!has_any_error(diagnostics, 'l'), "括号完整不报 l");
+    }
 
     if (failures == 0) {
         std::cout << "全部通过\n";
