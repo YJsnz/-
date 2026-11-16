@@ -1,0 +1,20 @@
+const int K = 3;
+const char SEP = '-';
+int a;
+char ch;
+int arr[3];
+int m[2][2] = {{1, 2}, {3, 4}};
+void main(){
+    scanf(a);
+    scanf(ch);
+    arr[0] = a + K * 2;
+    arr[1] = (a - 1) / 2;
+    arr[2] = -arr[0] + arr[1];
+    m[1][1] = arr[0] + arr[1] + arr[2];
+    printf("int=", a);
+    printf("char=", ch);
+    printf("sep=", SEP);
+    printf("arr=", arr[0] + arr[1] + arr[2]);
+    printf("m=", m[1][1]);
+    printf("sum=", arr[0] + arr[1] + arr[2] + m[1][1]);
+}

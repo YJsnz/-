@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验四（代码生成）进行中**：P4-1～P4-7 已完成，下一次开发：P4-8。
+**实验四（代码生成）已完成**（标签 `stage4`），可选后续：P4-9 扩展代码生成、P5-1 项目总结。
 
 > 当前 `--dump-parser` 已接通语法分析框架（暂时只输出单词）；`--dump-lexer` 仍输出实验一的词法结果。
 
@@ -42,7 +42,7 @@
 
 ```bash
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
-./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2～P3-19、P4-6、P4-7）
+./scripts/verify.sh all        # 运行全部用例（当前有 P1 全部、P2-8、P2-13、P3-2～P3-19、P4-6～P4-8）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
 ./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ./scripts/test_unit.sh lexer   # 运行词法分析单元测试
@@ -181,6 +181,7 @@ python tools/capture.py \
   - [P4-5 读写语句](docs/repro/P4-5_读写语句/README.md)
   - [P4-6 解释器](docs/repro/P4-6_解释器/README.md)
   - [P4-7 官方 exp4](docs/repro/P4-7_官方exp4/README.md)
+  - [P4-8 阶段验收](docs/repro/P4-8_阶段验收/README.md)
 
 ## 开发约定（摘要）
 
@@ -194,5 +195,5 @@ python tools/capture.py \
 
 - 实验一（词法分析）已完成并打标签 `stage1`；
 - `tests/cases/` 目前有 P1-1 骨架用例与 P1-3～P1-11 词法用例；
-- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四 PCODE、代码生成与解释器完成，官方 exp4 已逐行一致（P4-1～P4-7），P4-8 做阶段验收；
+- 实验二（语法分析）已完成（`stage2`）；实验三（错误处理）已完成（`stage3`）；实验四（代码生成）已完成（`stage4`），官方 exp4 与组合用例通过；P4-9/P5-1 为可选扩展；
 - PCODE 指令集尚未设计（P4-1）。

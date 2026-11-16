@@ -1,0 +1,6 @@
+int=10
+char=z
+sep=-
+arr=8
+m=8
+sum=16
