@@ -7,6 +7,8 @@
 #include <iterator>
 #include <string>
 
+#include "lexer/scanner.h"
+
 namespace {
 
 struct Options {
@@ -87,7 +89,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // 词法分析接入点（P1-2 / P1-3）：source 为完整源程序。
-    (void)source;
+    // 扫描器已接通；P1-3 将基于它产生单词。
+    lexer::Scanner scanner(source);
+    (void)scanner;
     return 0;
 }

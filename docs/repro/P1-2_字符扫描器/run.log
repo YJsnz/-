@@ -1,0 +1,53 @@
+# P1-2 字符扫描器验证
+# 时间: 2026-11-16 11:07:22
+# 提交: 6cfff12
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ ./scripts/build.sh
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 2
+输出      = build/compiler
+构建成功：build/compiler
+[exit 0]
+
+$ ./scripts/test_unit.sh scanner
+编译 tests/unit/scanner_test.cpp
+运行 build/unit/scanner_test
+[PASS] 跳过空白后未到文件尾
+[PASS] 跳过空白后定位到 i
+[PASS] CRLF 只计一行（line == 2）
+[PASS] 跳过空白后 column == 3
+[PASS] 初始位置为 1:1
+[PASS] 行内前进时列号递增
+[PASS] 换行后行号 +1、列号复位
+[PASS] 换行后定位到下一行首字符
+[PASS] 单独的 CR 也计为换行
+[PASS] peek_next 返回下一个字符
+[PASS] peek_next 越过文件尾返回 '\0'
+[PASS] 空文件立即到达文件尾
+[PASS] 文件尾 peek 返回 '\0'
+[PASS] 文件尾 advance 不移动游标
+[PASS] 空格被跳过
+[PASS] 制表符按单字符推进列号
+[PASS] 构造后位置为 1:1
+[PASS] 前导空格后 column == 3
+全部通过
+[exit 0]
+
+$ ./scripts/verify.sh all
+编译器    = g++.exe (x86_64-posix-seh-rev0, Built by MinGW-W64 project) 8.1.0
+源文件数  = 2
+输出      = build/compiler
+构建成功：build/compiler
+[PASS] P1-1
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+$ wc -l src/lexer/scanner.h src/lexer/scanner.cpp tests/unit/scanner_test.cpp
+  44 src/lexer/scanner.h
+  52 src/lexer/scanner.cpp
+  81 tests/unit/scanner_test.cpp
+ 177 total
+[exit 0]

@@ -13,7 +13,7 @@
 
 **阶段 0（基础设施）已完成**：目录结构、构建脚本、验证脚本、截图工具、复现文档模板、官方样例、项目说明。
 
-**实验一（词法分析）进行中**：P1-1 主程序骨架已完成，下一次开发：P1-2。
+**实验一（词法分析）进行中**：P1-1～P1-2 已完成，下一次开发：P1-3。
 
 > `build/compiler` 已能读取 `testfile.txt`，并在 `--dump-lexer` 下创建 `output.txt`；词法分析尚未实现，结果文件为空。
 
@@ -40,6 +40,7 @@
 ./scripts/verify.sh selftest   # 验证脚本自检（假编译器）
 ./scripts/verify.sh all        # 运行全部用例（当前有 P1-1）
 ./scripts/verify.sh stage1     # 运行 P1-* 用例
+./scripts/test_unit.sh scanner # 运行扫描器单元测试
 ```
 
 ### 生成截图
@@ -63,14 +64,19 @@ python tools/capture.py \
 ├── 2026年编译原理实验指导书.pdf    # 唯一事实来源
 ├── scripts/
 │   ├── build.sh                   # 构建：src/ → build/compiler
-│   └── verify.sh                  # 验证：单用例 / all / stageN / selftest
+│   ├── verify.sh                  # 验证：单用例 / all / stageN / selftest
+│   └── test_unit.sh               # 单元测试：tests/unit/<模块>_test.cpp
 ├── tools/
 │   └── capture.py                 # 运行命令并生成截图 + 原始日志
 ├── src/
-│   └── main.cpp                   # 主程序骨架（P1-1：读入、开关、输出文件）
+│   ├── main.cpp                   # 主程序骨架（读入、开关、输出文件）
+│   └── lexer/
+│       ├── scanner.h              # 字符扫描器接口
+│       └── scanner.cpp            # 游标、行列号、空白跳过、换行归一化
 ├── tests/
 │   ├── official/                  # 指导书官方样例（exp1~exp4）
-│   ├── cases/                     # 功能用例（P1-10 起添加）
+│   ├── cases/                     # 功能用例（当前含 P1-1）
+│   ├── unit/                      # 单元测试（scanner 等）
 │   └── tmp/                       # 运行临时目录（不提交）
 ├── docs/
 │   ├── repro/                     # 每个功能的复现文档、截图与日志
@@ -104,6 +110,7 @@ python tools/capture.py \
   - [P0-7 项目说明](docs/repro/P0-7_项目说明/README.md)
 - 实验一：
   - [P1-1 主程序骨架](docs/repro/P1-1_主程序骨架/README.md)
+  - [P1-2 字符扫描器](docs/repro/P1-2_字符扫描器/README.md)
 
 ## 开发约定（摘要）
 
@@ -115,6 +122,6 @@ python tools/capture.py \
 
 ## 已知限制
 
-- 词法分析尚未实现（P1-2 起）；语法分析、错误处理、代码生成也尚未实现；
+- 词法分析尚未实现（P1-3 起）；扫描器已就绪，语法分析、错误处理、代码生成尚未实现；
 - `tests/cases/` 目前只有 P1-1 骨架用例，`verify.sh all` 运行该用例；
 - PCODE 指令集尚未设计（P4-1）。
