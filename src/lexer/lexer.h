@@ -30,6 +30,10 @@ private:
     Token scan_string_constant();
     Token scan_operator_or_delimiter();
 
+    // 词法错误恢复：跳到闭合引号或换行，避免吞掉后续语句。
+    void skip_char_literal_tail();
+    void skip_string_literal_tail();
+
     Scanner scanner_;
     ErrorCallback on_error_;
 };

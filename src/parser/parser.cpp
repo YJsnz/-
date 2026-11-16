@@ -858,7 +858,14 @@ bool Parser::parse_factor() {
     } else {
         syntax_error(current(), "期望因子");
         if (recovery_ && current().kind != lexer::TokenKind::End) {
-            advance();
+            const lexer::TokenKind kind = current().kind;
+            // 分号/右括号等是上层同步点，不要吞掉。
+            if (kind != lexer::TokenKind::Semicolon &&
+                kind != lexer::TokenKind::RBrace &&
+                kind != lexer::TokenKind::RParen &&
+                kind != lexer::TokenKind::RBracket) {
+                advance();
+            }
         }
         return recovery_;
     }

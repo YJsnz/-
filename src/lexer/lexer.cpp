@@ -208,10 +208,9 @@ Token Lexer::scan_char_constant() {
     }
 
     if (!is_char_literal_char(content)) {
-        scanner_.advance();
         token.kind = TokenKind::Error;
-        token.lexeme = std::string("'") + content;
         token.message = "字符常量中出现非法字符 '" + std::string(1, content) + "'";
+        skip_char_literal_tail();
         return token;
     }
 
@@ -221,6 +220,7 @@ Token Lexer::scan_char_constant() {
     if (scanner_.at_end() || scanner_.peek() != '\'') {
         token.kind = TokenKind::Error;
         token.message = "字符常量只能包含一个字符，且必须以单引号结束";
+        skip_char_literal_tail();
         return token;
     }
 
@@ -267,10 +267,10 @@ Token Lexer::scan_string_constant() {
 
         if (!is_string_char(c)) {
             const unsigned char u = static_cast<unsigned char>(c);
-            scanner_.advance();
             token.kind = TokenKind::Error;
             token.lexeme = content;
             token.message = "字符串常量中出现非法字符（ASCII " + std::to_string(u) + "）";
+            skip_string_literal_tail();
             return token;
         }
 
@@ -369,6 +369,34 @@ Token Lexer::scan_operator_or_delimiter() {
     token.raw = slice_from(start);
     token.value = token.lexeme;
     return token;
+}
+
+void Lexer::skip_char_literal_tail() {
+    while (!scanner_.at_end()) {
+        const char c = scanner_.peek();
+        if (c == '\'') {
+            scanner_.advance();
+            return;
+        }
+        if (c == '\n') {
+            return;
+        }
+        scanner_.advance();
+    }
+}
+
+void Lexer::skip_string_literal_tail() {
+    while (!scanner_.at_end()) {
+        const char c = scanner_.peek();
+        if (c == '"') {
+            scanner_.advance();
+            return;
+        }
+        if (c == '\n') {
+            return;
+        }
+        scanner_.advance();
+    }
 }
 
 }  // namespace lexer
