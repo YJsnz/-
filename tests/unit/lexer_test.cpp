@@ -211,6 +211,54 @@ int main() {
               "字符常量类别码为 CHARCON");
     }
     {
+        const lexer::Token t = first_token("\"Hello World\"");
+        check(t.kind == lexer::TokenKind::StringConstant && t.lexeme == "Hello World",
+              "字符串内容原样保存（含空格）");
+        check(t.line == 1 && t.column == 1, "字符串位置为 1:1");
+    }
+    {
+        check(first_token("\"\"").kind == lexer::TokenKind::Error, "空字符串报错");
+        check(first_token("\"abc").kind == lexer::TokenKind::Error, "缺少结束引号报错");
+        check(first_token("\"a\nb\"").kind == lexer::TokenKind::Error,
+              "字符串中的换行报错");
+        check(first_token("\"a\tb\"").kind == lexer::TokenKind::Error,
+              "字符串中的制表符报错");
+        check(first_token("\"\xC3\xA9\"").kind == lexer::TokenKind::Error,
+              "非 ASCII 字符报错");
+    }
+    {
+        const lexer::Token t = first_token("\" \"");
+        check(t.kind == lexer::TokenKind::StringConstant && t.lexeme == " ",
+              "单个空格是合法字符串");
+        check(first_token("\"#\"").lexeme == "#", "ASCII 35 边界字符合法");
+        check(first_token("\"~\"").lexeme == "~", "ASCII 126 边界字符合法");
+    }
+    {
+        // 输入为 "a\"b"：反斜杠不是转义，字符串在第二个双引号处结束
+        const lexer::Token t = first_token("\"a\\\"b\"");
+        check(t.kind == lexer::TokenKind::StringConstant && t.lexeme == "a\\",
+              "反斜杠不做转义处理");
+    }
+    {
+        const lexer::Token t = first_token("  \"x\"");
+        check(t.kind == lexer::TokenKind::StringConstant && t.lexeme == "x" &&
+                  t.line == 1 && t.column == 3,
+              "字符串位于 1:3");
+    }
+    {
+        const std::vector<lexer::Token> tokens = all_tokens("\"hi\" x");
+        check(tokens.size() == 3 && tokens[0].kind == lexer::TokenKind::StringConstant &&
+                  tokens[0].lexeme == "hi",
+              "字符串后接标识符：第一个词法单元正确");
+        check(tokens.size() == 3 && tokens[1].kind == lexer::TokenKind::Identifier &&
+                  tokens[1].lexeme == "x",
+              "字符串后接标识符：第二个词法单元正确");
+    }
+    {
+        check(std::string(lexer::token_code(lexer::TokenKind::StringConstant)) == "STRCON",
+              "字符串类别码为 STRCON");
+    }
+    {
         check(std::string(lexer::token_code(lexer::TokenKind::Identifier)) == "IDENFR",
               "标识符类别码为 IDENFR");
         check(std::string(lexer::token_code(lexer::TokenKind::KeywordConst)) == "CONSTTK",

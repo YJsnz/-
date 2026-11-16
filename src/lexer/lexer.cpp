@@ -47,6 +47,12 @@ bool is_char_literal_char(char c) {
     return is_letter(c) || is_digit(c) || c == '+' || c == '-' || c == '*' || c == '/';
 }
 
+// 字符串允许十进制编码 32、33、35-126 的 ASCII 字符（不含双引号 34）。
+bool is_string_char(char c) {
+    const unsigned char u = static_cast<unsigned char>(c);
+    return u == 32 || u == 33 || (u >= 35 && u <= 126);
+}
+
 char ascii_lower(char c) {
     if (c >= 'A' && c <= 'Z') {
         return static_cast<char>(c - 'A' + 'a');
@@ -101,10 +107,14 @@ Token Lexer::next_token() {
         return scan_char_constant();
     }
 
+    if (scanner_.peek() == '"') {
+        return scan_string_constant();
+    }
+
     token.kind = TokenKind::Error;
     token.lexeme = std::string(1, scanner_.advance());
     token.message = "未识别的字符 '" + token.lexeme +
-                    "'（字符串、运算符与界符将在后续任务支持）";
+                    "'（运算符与界符将在后续任务支持）";
     return token;
 }
 
@@ -176,6 +186,49 @@ Token Lexer::scan_char_constant() {
     scanner_.advance();  // 闭引号
     token.kind = TokenKind::CharConstant;
     return token;
+}
+
+Token Lexer::scan_string_constant() {
+    Token token;
+    token.line = scanner_.line();
+    token.column = scanner_.column();
+
+    scanner_.advance();  // 开引号
+    std::string content;
+
+    for (;;) {
+        if (scanner_.at_end()) {
+            token.kind = TokenKind::Error;
+            token.lexeme = content;
+            token.message = "字符串常量缺少结束引号";
+            return token;
+        }
+
+        const char c = scanner_.peek();
+        if (c == '"') {
+            scanner_.advance();
+            if (content.empty()) {
+                token.kind = TokenKind::Error;
+                token.lexeme = "\"\"";
+                token.message = "字符串常量不能为空";
+                return token;
+            }
+            token.kind = TokenKind::StringConstant;
+            token.lexeme = content;  // 输出不含双引号
+            return token;
+        }
+
+        if (!is_string_char(c)) {
+            const unsigned char u = static_cast<unsigned char>(c);
+            scanner_.advance();
+            token.kind = TokenKind::Error;
+            token.lexeme = content;
+            token.message = "字符串常量中出现非法字符（ASCII " + std::to_string(u) + "）";
+            return token;
+        }
+
+        content.push_back(scanner_.advance());
+    }
 }
 
 }  // namespace lexer

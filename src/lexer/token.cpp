@@ -10,6 +10,8 @@ const char* token_code(TokenKind kind) {
             return "INTCON";
         case TokenKind::CharConstant:
             return "CHARCON";
+        case TokenKind::StringConstant:
+            return "STRCON";
         case TokenKind::KeywordConst:
             return "CONSTTK";
         case TokenKind::KeywordInt:

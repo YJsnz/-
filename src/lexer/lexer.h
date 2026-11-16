@@ -19,6 +19,7 @@ private:
     Token scan_identifier_or_keyword();
     Token scan_number();
     Token scan_char_constant();
+    Token scan_string_constant();
 
     Scanner scanner_;
 };

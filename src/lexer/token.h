@@ -12,6 +12,7 @@ enum class TokenKind {
     Identifier,
     IntConstant,
     CharConstant,
+    StringConstant,
 
     KeywordConst,
     KeywordInt,

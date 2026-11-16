@@ -1,0 +1,4 @@
+STRCON Hello World
+STRCON !
+STRCON #~
+STRCON a\b
