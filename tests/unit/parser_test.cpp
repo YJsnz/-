@@ -35,9 +35,14 @@ public:
     using parser::Parser::can_start_variable;
     using parser::Parser::is_function_definition_start;
     using parser::Parser::parse_declaration_header;
+    using parser::Parser::parse_expression;
+    using parser::Parser::parse_factor;
+    using parser::Parser::parse_function_call;
     using parser::Parser::parse_function_definition;
     using parser::Parser::parse_main_function;
     using parser::Parser::parse_parameter_list;
+    using parser::Parser::parse_term;
+    using parser::Parser::parse_value_parameter_list;
     using parser::Parser::parse_variable_declaration;
     using parser::Parser::parse_variable_definition;
     using parser::Parser::peek_token;
@@ -475,6 +480,118 @@ int main() {
 
         check(parser.parse_function_definition(), "嵌套块语句的复合语句解析成功");
         check(parser.at_end(), "嵌套块语句消费完所有单词");
+    }
+    {
+        lexer::Lexer lexer("1");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "单因子表达式解析成功");
+        const std::string expected =
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n";
+        check(out.str() == expected, "整数因子与表达式标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("-1 + 2 * 3");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "带符号与乘除的表达式解析成功");
+        const std::string expected =
+            "MINU -\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "PLUS +\n"
+            "INTCON 2\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "MULT *\n"
+            "INTCON 3\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n";
+        check(out.str() == expected, "表达式与项的优先级顺序正确");
+    }
+    {
+        lexer::Lexer lexer("(a + 1)");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "括号因子解析成功");
+        const std::string expected =
+            "LPARENT (\n"
+            "IDENFR a\n"
+            "<因子>\n"
+            "<项>\n"
+            "PLUS +\n"
+            "INTCON 1\n"
+            "<无符号整数>\n"
+            "<整数>\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n"
+            "RPARENT )\n"
+            "<因子>\n"
+            "<项>\n"
+            "<表达式>\n";
+        check(out.str() == expected, "括号表达式输出正确");
+    }
+    {
+        lexer::Lexer lexer("a[1][2]");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "二维数组元素因子解析成功");
+        check(parser.at_end(), "二维数组元素消费完所有单词");
+        check(out.str().find("RBRACK ]\n<因子>\n<项>\n<表达式>") != std::string::npos,
+              "二维数组下标与因子标记正确");
+    }
+    {
+        lexer::Lexer lexer("f(1, 2)");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "函数调用因子解析成功");
+        check(out.str().find(
+                  "<值参数表>\nRPARENT )\n<有返回值函数调用语句>\n<因子>\n<项>\n<表达式>") !=
+                  std::string::npos,
+              "函数调用因子标记顺序正确");
+    }
+    {
+        lexer::Lexer lexer("f()");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "空实参函数调用解析成功");
+        check(out.str().find("<值参数表>\nRPARENT )\n<有返回值函数调用语句>") !=
+                  std::string::npos,
+              "空值参数表也会输出");
+    }
+    {
+        lexer::Lexer lexer("'x'");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+
+        check(parser.parse_expression(), "字符因子解析成功");
+        check(out.str() == "CHARCON x\n<因子>\n<项>\n<表达式>\n",
+              "字符因子输出正确");
+    }
+    {
+        lexer::Lexer lexer("*");
+        std::ostringstream out;
+        TestParser parser(lexer, &out);
+        check(!parser.parse_expression(), "非法因子表达式解析失败");
     }
 
     if (failures == 0) {

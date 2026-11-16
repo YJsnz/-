@@ -67,6 +67,12 @@ protected:
     bool parse_compound_statement_body();  // '{' <复合语句> '}'
     bool skip_statement_temporarily();     // P2-8 前的语句占位
 
+    bool parse_expression();               // <表达式>
+    bool parse_term();                     // <项>
+    bool parse_factor();                   // <因子>
+    bool parse_value_parameter_list();     // <值参数表>
+    bool parse_function_call();            // <有返回值函数调用语句>
+
 private:
     void fill_to(std::size_t k);
 

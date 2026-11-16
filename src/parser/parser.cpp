@@ -551,4 +551,127 @@ bool Parser::parse_main_function() {
     return ok_;
 }
 
+// ---------------------------------------------------------------- 表达式
+
+bool Parser::parse_expression() {
+    if (current().kind == lexer::TokenKind::Plus ||
+        current().kind == lexer::TokenKind::Minus) {
+        advance();
+    }
+    if (!parse_term()) {
+        return false;
+    }
+    while (ok_ && (current().kind == lexer::TokenKind::Plus ||
+                   current().kind == lexer::TokenKind::Minus)) {
+        advance();
+        if (!parse_term()) {
+            return false;
+        }
+    }
+    marker("表达式");
+    return ok_;
+}
+
+bool Parser::parse_term() {
+    if (!parse_factor()) {
+        return false;
+    }
+    while (ok_ && (current().kind == lexer::TokenKind::Star ||
+                   current().kind == lexer::TokenKind::Slash)) {
+        advance();
+        if (!parse_factor()) {
+            return false;
+        }
+    }
+    marker("项");
+    return ok_;
+}
+
+bool Parser::parse_factor() {
+    bool ok = false;
+
+    if (current().kind == lexer::TokenKind::Identifier &&
+        peek_token(1).kind == lexer::TokenKind::LParen) {
+        ok = parse_function_call();
+    } else if (current().kind == lexer::TokenKind::Identifier) {
+        if (!advance()) {
+            return false;
+        }
+        if (ok_ && current().kind == lexer::TokenKind::LBracket) {
+            advance();
+            if (!parse_expression()) {
+                return false;
+            }
+            if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+                return false;
+            }
+            if (ok_ && current().kind == lexer::TokenKind::LBracket) {
+                advance();
+                if (!parse_expression()) {
+                    return false;
+                }
+                if (!expect(lexer::TokenKind::RBracket, "右中括号 ]")) {
+                    return false;
+                }
+            }
+        }
+        ok = ok_;
+    } else if (current().kind == lexer::TokenKind::IntConstant ||
+               current().kind == lexer::TokenKind::Plus ||
+               current().kind == lexer::TokenKind::Minus) {
+        ok = parse_integer();
+    } else if (current().kind == lexer::TokenKind::CharConstant) {
+        ok = parse_character();
+    } else if (current().kind == lexer::TokenKind::LParen) {
+        advance();
+        if (!parse_expression()) {
+            return false;
+        }
+        ok = expect(lexer::TokenKind::RParen, "右小括号 )");
+    } else {
+        syntax_error(current(), "期望因子");
+        return false;
+    }
+
+    if (!ok) {
+        return false;
+    }
+    marker("因子");
+    return ok_;
+}
+
+bool Parser::parse_value_parameter_list() {
+    if (current().kind != lexer::TokenKind::RParen) {
+        if (!parse_expression()) {
+            return false;
+        }
+        while (ok_ && match(lexer::TokenKind::Comma)) {
+            if (!parse_expression()) {
+                return false;
+            }
+        }
+    }
+
+    marker("值参数表");
+    return ok_;
+}
+
+bool Parser::parse_function_call() {
+    if (!expect(lexer::TokenKind::Identifier, "标识符")) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::LParen, "(")) {
+        return false;
+    }
+    if (!parse_value_parameter_list()) {
+        return false;
+    }
+    if (!expect(lexer::TokenKind::RParen, ")")) {
+        return false;
+    }
+
+    marker("有返回值函数调用语句");
+    return ok_;
+}
+
 }  // namespace parser
