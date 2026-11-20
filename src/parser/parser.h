@@ -103,6 +103,7 @@ protected:
     bool parse_value_parameter_list();     // <值参数表>
     bool parse_function_call();            // <有返回值函数调用语句>（表达式内）
     bool parse_call_statement(bool returns_value);  // 函数调用语句
+    void recover_declaration();
 
 private:
     struct ParameterInfo {

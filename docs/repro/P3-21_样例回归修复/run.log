@@ -1,0 +1,17 @@
+# P3-21 错误处理回归
+# 时间: 2026-11-20 20:48:56
+# 提交: d69eeaa
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ COMPILER="build/compiler.exe" ./scripts/verify.sh P3-21
+使用指定编译器：build/compiler.exe（跳过构建）
+[PASS] P3-21
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+# 文件：tests/tmp/P3-21/error.txt
+7 a
+10 e
+11 d

@@ -815,7 +815,8 @@ int main() {
             "<赋值语句>\n"
             "SEMICN ;\n"
             "<语句>\n"
-            "<条件语句>\n";
+            "<条件语句>\n"
+            "<语句>\n";
         check(out.str() == expected, "条件语句与成分名顺序正确");
     }
     {
@@ -826,7 +827,7 @@ int main() {
         check(parser.parse_statement(), "if-else 条件语句解析成功");
         check(out.str().find("SEMICN ;\n<语句>\nELSETK else") != std::string::npos,
               "else 位于 then 语句之后");
-        const std::string tail = "<条件语句>\n";
+        const std::string tail = "<条件语句>\n<语句>\n";
         check(out.str().size() >= tail.size() &&
                   out.str().compare(out.str().size() - tail.size(), tail.size(), tail) == 0,
               "条件语句标记位于最后");
@@ -858,7 +859,7 @@ int main() {
         TestParser parser(lexer, &out);
 
         check(parser.parse_statement(), "分支为块语句的条件语句解析成功");
-        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<条件语句>") !=
+        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<条件语句>\n<语句>") !=
                   std::string::npos,
               "块语句分支的标记顺序正确");
     }
@@ -893,7 +894,8 @@ int main() {
             "<赋值语句>\n"
             "SEMICN ;\n"
             "<语句>\n"
-            "<循环语句>\n";
+            "<循环语句>\n"
+            "<语句>\n";
         check(out.str() == expected, "while 循环与成分名顺序正确");
     }
     {
@@ -910,7 +912,7 @@ int main() {
                         "INTCON 1\n<无符号整数>\n<步长>\nRPARENT )") !=
                   std::string::npos,
               "for 步长部分输出正确");
-        const std::string tail = "<语句>\n<循环语句>\n";
+        const std::string tail = "<语句>\n<循环语句>\n<语句>\n";
         check(text.size() >= tail.size() &&
                   text.compare(text.size() - tail.size(), tail.size(), tail) == 0,
               "for 循环标记位于最后");
@@ -931,7 +933,7 @@ int main() {
         TestParser parser(lexer, &out);
 
         check(parser.parse_statement(), "循环体为块语句的 while 解析成功");
-        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<循环语句>") !=
+        check(out.str().find("<语句列>\nRBRACE }\n<语句>\n<循环语句>\n<语句>") !=
                   std::string::npos,
               "块循环体的标记顺序正确");
     }
@@ -962,7 +964,8 @@ int main() {
         check(text.find("<语句>\n<情况子语句>\n<情况表>\nDEFAULTTK default\nCOLON :") !=
                   std::string::npos,
               "情况表后接缺省语句");
-        const std::string tail = "<语句>\n<缺省>\nRBRACE }\n<情况语句>\n";
+        const std::string tail =
+            "<语句>\n<缺省>\nRBRACE }\n<情况语句>\n<语句>\n";
         check(text.size() >= tail.size() &&
                   text.compare(text.size() - tail.size(), tail.size(), tail) == 0,
               "情况语句标记位于最后");
@@ -2653,6 +2656,62 @@ int main() {
             "int f(int x){\nreturn(x * 2);\n}\nint g(int x){\nreturn(f(x) + 1);\n}\nvoid main(){\nprintf(g(3));\n}\n",
             "", ok);
         check(ok && output == "7\n", "嵌套函数调用执行正确");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "char data[1] = {'a'};\n"
+            "char pick(int i){ return(data[i]); }\n"
+            "void main(){}\n",
+            parsed);
+        check(parsed, "字符数组元素可作为 char 返回值");
+        check(!has_any_error(diagnostics, 'h'),
+              "字符数组元素返回不误报 h");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "int id(int x){ return(x); }\n"
+            "char letter(){ return('a'); }\n"
+            "int accept(int x){ return(x); }\n"
+            "void main(){\n"
+            "int value;\n"
+            "value = accept(id(1));\n"
+            "value = accept(letter());\n"
+            "accept(id(2), 3);\n"
+            "}\n",
+            parsed);
+        check(parsed, "嵌套函数调用参数检查后仍可继续解析");
+        check(has_error(diagnostics, 'e', 7),
+              "嵌套 char 返回值传给 int 参数时报 e");
+        check(has_error(diagnostics, 'd', 8),
+              "嵌套调用不覆盖外层实参数量");
+        check(!has_error(diagnostics, 'd', 6),
+              "正确的嵌套调用不误报参数数量");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void f(){}\nvoid main(){ f(;;;;; }\n", parsed);
+        check(parsed, "缺右括号的空实参调用仍可恢复");
+        check(has_error(diagnostics, 'l', 2),
+              "空实参调用缺右括号报告 l");
+        check(!has_any_error(diagnostics, 'a'),
+              "空实参调用缺右括号不误报 a");
+    }
+    {
+        bool parsed = false;
+        const std::vector<common::Diagnostic> diagnostics = collect_errors(
+            "void main(){\n"
+            "char bad = '!';\n"
+            "char c;\n"
+            "int value;\n"
+            "value = 1;\n"
+            "}\n",
+            parsed);
+        check(parsed, "非法字符常量后继续分析后续声明");
+        check(diagnostics.size() == 1 && has_error(diagnostics, 'a', 2),
+              "非法字符常量只报告原始词法错误");
     }
 
     if (failures == 0) {

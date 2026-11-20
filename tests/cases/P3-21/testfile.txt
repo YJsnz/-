@@ -1,0 +1,12 @@
+char data[1] = {'a'};
+char pick(int i) { return(data[i]); }
+int id(int x) { return(x); }
+char letter() { return('a'); }
+int accept(int x) { return(x); }
+void main() {
+    char bad = '!';
+    int value;
+    value = accept(id(1));
+    value = accept(letter());
+    accept(id(2), 3);
+}

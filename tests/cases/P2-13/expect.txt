@@ -256,6 +256,7 @@ SEMICN ;
 RBRACE }
 <语句>
 <循环语句>
+<语句>
 WHILETK while
 LPARENT (
 IDENFR s
@@ -291,6 +292,7 @@ SEMICN ;
 RBRACE }
 <语句>
 <循环语句>
+<语句>
 IFTK if
 LPARENT (
 IDENFR s
@@ -354,6 +356,7 @@ SEMICN ;
 RBRACE }
 <语句>
 <条件语句>
+<语句>
 SWITCHTK switch
 LPARENT (
 IDENFR s
@@ -415,6 +418,7 @@ SEMICN ;
 <缺省>
 RBRACE }
 <情况语句>
+<语句>
 SCANFTK scanf
 LPARENT (
 IDENFR i

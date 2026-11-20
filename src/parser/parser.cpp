@@ -139,11 +139,21 @@ const semantic::Symbol* Parser::lookup_or_report(const lexer::Token& token,
 }
 
 bool Parser::parse_program() {
-    if (current().kind == lexer::TokenKind::KeywordConst) {
-        parse_constant_declaration();
+    while (current().kind == lexer::TokenKind::KeywordConst) {
+        if (!parse_constant_declaration()) {
+            if (!recovery_) {
+                return false;
+            }
+            recover_declaration();
+        }
     }
-    if (ok_ && can_start_variable()) {
-        parse_variable_declaration();
+    while (ok_ && can_start_variable()) {
+        if (!parse_variable_declaration()) {
+            if (!recovery_) {
+                return false;
+            }
+            recover_declaration();
+        }
     }
     while (ok_ && is_function_definition_start()) {
         parse_function_definition();
@@ -165,6 +175,16 @@ bool Parser::parse_program() {
         generator_->emit_end();
     }
     return ok_;
+}
+
+void Parser::recover_declaration() {
+    while (!at_end() && current().kind != lexer::TokenKind::Semicolon &&
+           current().kind != lexer::TokenKind::RBrace) {
+        advance();
+    }
+    if (current().kind == lexer::TokenKind::Semicolon) {
+        advance();
+    }
 }
 
 bool Parser::advance() {
@@ -699,11 +719,21 @@ bool Parser::parse_compound_statement_body() {
 }
 
 bool Parser::parse_compound_statement() {
-    if (current().kind == lexer::TokenKind::KeywordConst) {
-        parse_constant_declaration();
+    while (current().kind == lexer::TokenKind::KeywordConst) {
+        if (!parse_constant_declaration()) {
+            if (!recovery_) {
+                return false;
+            }
+            recover_declaration();
+        }
     }
-    if (ok_ && can_start_variable()) {
-        parse_variable_declaration();
+    while (ok_ && can_start_variable()) {
+        if (!parse_variable_declaration()) {
+            if (!recovery_) {
+                return false;
+            }
+            recover_declaration();
+        }
     }
     if (ok_ && !parse_statement_list()) {
         return false;
@@ -780,16 +810,28 @@ bool Parser::parse_statement() {
     }
 
     if (current().kind == lexer::TokenKind::KeywordIf) {
-        return parse_conditional_statement();
+        if (!parse_conditional_statement()) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
     }
 
     if (current().kind == lexer::TokenKind::KeywordWhile ||
         current().kind == lexer::TokenKind::KeywordFor) {
-        return parse_loop_statement();
+        if (!parse_loop_statement()) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
     }
 
     if (current().kind == lexer::TokenKind::KeywordSwitch) {
-        return parse_switch_statement();
+        if (!parse_switch_statement()) {
+            return false;
+        }
+        marker("语句");
+        return ok_;
     }
 
     if (current().kind == lexer::TokenKind::Identifier &&
@@ -1354,6 +1396,10 @@ bool Parser::parse_factor() {
                 generator_->emit_ldi();
             }
         }
+        if (has_bracket && symbol != nullptr &&
+            symbol->kind == semantic::SymbolKind::Array) {
+            last_factor_type_ = symbol->type;
+        }
         ok = ok_;
     } else if (current().kind == lexer::TokenKind::IntConstant ||
                current().kind == lexer::TokenKind::Plus ||
@@ -1419,7 +1465,12 @@ bool Parser::parse_value_parameter_list() {
             }
         }
     };
-    if (current().kind != lexer::TokenKind::RParen) {
+    const lexer::TokenKind first_kind = current().kind;
+    const bool at_call_boundary =
+        first_kind == lexer::TokenKind::Semicolon ||
+        first_kind == lexer::TokenKind::RBrace ||
+        first_kind == lexer::TokenKind::End;
+    if (first_kind != lexer::TokenKind::RParen && !at_call_boundary) {
         if (!parse_expression()) {
             return false;
         }
@@ -1446,25 +1497,37 @@ bool Parser::parse_function_call() {
         return false;
     }
     const semantic::Symbol* symbol = lookup_or_report(name_token, true);
-    last_call_return_type_ =
+    const semantic::DataType call_return_type =
         symbol != nullptr ? symbol->type : semantic::DataType::Unknown;
+    last_call_return_type_ = call_return_type;
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
+    const semantic::Symbol* saved_active_call_symbol = active_call_symbol_;
+    const int saved_argument_count = last_argument_count_;
+    const std::vector<semantic::DataType> saved_argument_types =
+        std::move(last_argument_types_);
     active_call_symbol_ = symbol;
+    last_argument_count_ = 0;
+    last_argument_types_.clear();
     const bool arguments_ok = parse_value_parameter_list();
-    active_call_symbol_ = nullptr;
+    const int argument_count = last_argument_count_;
+    const std::vector<semantic::DataType> argument_types = last_argument_types_;
+    active_call_symbol_ = saved_active_call_symbol;
+    last_argument_count_ = saved_argument_count;
+    last_argument_types_ = saved_argument_types;
+    last_call_return_type_ = call_return_type;
     if (!arguments_ok) {
         return false;
     }
     if (recovery_ && symbol != nullptr) {
-        if (last_argument_count_ !=
+        if (argument_count !=
             static_cast<int>(symbol->parameter_types.size())) {
             syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
         } else {
             bool mismatch = false;
-            for (std::size_t i = 0; i < last_argument_types_.size(); ++i) {
-                const semantic::DataType actual = last_argument_types_[i];
+            for (std::size_t i = 0; i < argument_types.size(); ++i) {
+                const semantic::DataType actual = argument_types[i];
                 const semantic::DataType expected = symbol->parameter_types[i];
                 if (actual != semantic::DataType::Unknown &&
                     expected != semantic::DataType::Unknown && actual != expected) {
@@ -1501,20 +1564,30 @@ bool Parser::parse_call_statement(bool returns_value) {
     if (!expect(lexer::TokenKind::LParen, "(")) {
         return false;
     }
+    const semantic::Symbol* saved_active_call_symbol = active_call_symbol_;
+    const int saved_argument_count = last_argument_count_;
+    const std::vector<semantic::DataType> saved_argument_types =
+        std::move(last_argument_types_);
     active_call_symbol_ = symbol;
+    last_argument_count_ = 0;
+    last_argument_types_.clear();
     const bool arguments_ok = parse_value_parameter_list();
-    active_call_symbol_ = nullptr;
+    const int argument_count = last_argument_count_;
+    const std::vector<semantic::DataType> argument_types = last_argument_types_;
+    active_call_symbol_ = saved_active_call_symbol;
+    last_argument_count_ = saved_argument_count;
+    last_argument_types_ = saved_argument_types;
     if (!arguments_ok) {
         return false;
     }
     if (recovery_ && symbol != nullptr) {
-        if (last_argument_count_ !=
+        if (argument_count !=
             static_cast<int>(symbol->parameter_types.size())) {
             syntax_error('d', name_token, "函数参数个数不匹配：" + name_token.value);
         } else {
             bool mismatch = false;
-            for (std::size_t i = 0; i < last_argument_types_.size(); ++i) {
-                const semantic::DataType actual = last_argument_types_[i];
+            for (std::size_t i = 0; i < argument_types.size(); ++i) {
+                const semantic::DataType actual = argument_types[i];
                 const semantic::DataType expected = symbol->parameter_types[i];
                 if (actual != semantic::DataType::Unknown &&
                     expected != semantic::DataType::Unknown && actual != expected) {

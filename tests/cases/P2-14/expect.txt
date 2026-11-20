@@ -1,0 +1,140 @@
+VOIDTK void
+MAINTK main
+LPARENT (
+RPARENT )
+LBRACE {
+INTTK int
+IDENFR a
+<变量定义无初始化>
+<变量定义>
+SEMICN ;
+<变量说明>
+IDENFR a
+ASSIGN =
+INTCON 1
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<赋值语句>
+SEMICN ;
+<语句>
+IFTK if
+LPARENT (
+IDENFR a
+<因子>
+<项>
+<表达式>
+LSS <
+INTCON 2
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<条件>
+RPARENT )
+IDENFR a
+ASSIGN =
+IDENFR a
+<因子>
+<项>
+PLUS +
+INTCON 1
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<赋值语句>
+SEMICN ;
+<语句>
+<条件语句>
+<语句>
+WHILETK while
+LPARENT (
+IDENFR a
+<因子>
+<项>
+<表达式>
+LSS <
+INTCON 3
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<条件>
+RPARENT )
+SEMICN ;
+<语句>
+<循环语句>
+<语句>
+FORTK for
+LPARENT (
+IDENFR a
+ASSIGN =
+INTCON 0
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+SEMICN ;
+IDENFR a
+<因子>
+<项>
+<表达式>
+LSS <
+INTCON 2
+<无符号整数>
+<整数>
+<因子>
+<项>
+<表达式>
+<条件>
+SEMICN ;
+IDENFR a
+ASSIGN =
+IDENFR a
+PLUS +
+INTCON 1
+<无符号整数>
+<步长>
+RPARENT )
+SEMICN ;
+<语句>
+<循环语句>
+<语句>
+SWITCHTK switch
+LPARENT (
+IDENFR a
+<因子>
+<项>
+<表达式>
+RPARENT )
+LBRACE {
+CASETK case
+INTCON 1
+<无符号整数>
+<整数>
+<常量>
+COLON :
+SEMICN ;
+<语句>
+<情况子语句>
+<情况表>
+DEFAULTTK default
+COLON :
+SEMICN ;
+<语句>
+<缺省>
+RBRACE }
+<情况语句>
+<语句>
+<语句列>
+<复合语句>
+RBRACE }
+<主函数>
+<程序>
