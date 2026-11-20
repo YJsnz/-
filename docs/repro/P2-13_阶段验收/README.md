@@ -87,6 +87,8 @@ $ diff -u tests/official/exp2/output.txt tests/tmp/P2-8/output.txt && echo "官�
 
 ![01-实验二阶段验收](screenshots/01-stage2.png)
 
+![02-实验二结果展示样例](screenshots/02-display-sample.png)
+
 ## 7. 备注
 
 ### §6.2 阶段验收 checklist
@@ -125,3 +127,12 @@ git push origin stage2
 - 语法分析单元测试：159 项
 - 端到端用例：P2-8（官方 exp2）、P2-13（综合）
 - 实验一 9 个用例回归通过
+
+## 8. 结果展示样例运行
+
+- 样例来源：`tests/sample/实验二 结果展示样例.txt`
+- 可复现用例：`tests/cases/P2-15/`（输入、`--dump-parser` 配置和完整期望输出）
+- 命令：`COMPILER="build/compiler.exe" ./scripts/verify.sh P2-15`
+- 结果：通过，生成 870 行 `output.txt`。
+- 原始日志：[`sample-run.log`](sample-run.log)
+- 截图：![实验二展示样例输出](screenshots/02-display-sample.png)

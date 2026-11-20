@@ -1,0 +1,6 @@
+start compute\n
+-10
+0
+400
+-5
+end program\n

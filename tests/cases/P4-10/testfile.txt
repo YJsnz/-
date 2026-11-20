@@ -1,0 +1,17 @@
+const int NUM1 = 10;
+const int NUM2 = -20;
+void main(){
+    int a, b, c;
+    printf("start compute\n");
+    scanf(a);
+    scanf(b);
+    c = a + b;
+    printf(c);
+    c = a - NUM1;
+    printf(c);
+    c = b * NUM2;
+    printf(c);
+    c = (a + b) / 2;
+    printf(c);
+    printf("end program\n");
+}

@@ -1,0 +1,44 @@
+const int val$ = 10;
+const int const_j = 99;
+int res_l;
+int t;
+int arr_i[3]={1,2,3};
+
+int func_h(int x){
+    int temp;
+    temp = x + 1;
+}
+
+void func_g(){
+    return (100);
+}
+
+int func_de(int a, int b){
+    return (a + b);
+}
+
+void main(){
+    int sw_p = 2;
+    int local_b = 10;
+    int local_b = 20;
+    int var_o = 'c';
+    int arr_n[5] = {11,22,33};
+    int arr_m[3 = {1,2,3};
+
+    res_l = func_de(10 , 20 ;
+    res_l = undef_var + 1;
+    const_j=100;
+    arr_i['A'] = 50;
+    func_de(88);
+    func_de('q', 66);
+
+    if('x'){
+        t = 1;
+    }
+    switch(sw_p){
+        case 1:
+            sw_p = 10;
+        case 2:
+            sw_p = 20;
+    }
+}

@@ -1,0 +1,28 @@
+# 实验三更新样例运行
+# 时间: 2026-11-20 20:54:49
+# 提交: 8ba9bef
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ COMPILER="build/compiler.exe" ./scripts/verify.sh P3-22
+使用指定编译器：build/compiler.exe（跳过构建）
+[PASS] P3-22
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+# 文件：tests/tmp/P3-22/error.txt
+1 a
+10 h
+13 g
+23 b
+24 o
+25 n
+26 m
+28 l
+29 c
+30 j
+31 i
+32 d
+33 e
+35 a

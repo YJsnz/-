@@ -107,6 +107,8 @@ $ ./scripts/verify.sh all
 
 ![01-实验四阶段验收](screenshots/01-stage4.png)
 
+![02-实验四结果展示样例](screenshots/02-display-sample.png)
+
 ## 7. 备注
 
 ### 组合用例
@@ -183,3 +185,12 @@ git push origin stage4
 - 解释器单元测试：12 项
 - 实验四端到端用例：3 个（P4-6、P4-7、P4-8）
 - 全量端到端用例：32 个
+
+## 8. 结果展示样例运行
+
+- 样例来源：`tests/sample/实验四 结果展示样例.txt`
+- 可复现用例：`tests/cases/P4-10/`，标准输入文件为 `10`、`-20`（每项一行）。
+- 命令：`COMPILER="build/compiler.exe" ./scripts/verify.sh P4-10`
+- 结果：通过，`pcoderesult.txt` 为 `start compute\n`、`-10`、`0`、`400`、`-5`、`end program\n` 六行。
+- 原始日志：[`sample-run.log`](sample-run.log)
+- 截图：![实验四展示样例运行结果](screenshots/02-display-sample.png)

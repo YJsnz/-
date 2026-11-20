@@ -1,0 +1,20 @@
+# 实验四展示样例运行
+# 时间: 2026-11-20 20:54:50
+# 提交: 8ba9bef
+# 目录: D:\Code\编译原理
+# 工具: tools/capture.py
+
+$ COMPILER="build/compiler.exe" ./scripts/verify.sh P4-10
+使用指定编译器：build/compiler.exe（跳过构建）
+[PASS] P4-10
+----------------------------------------
+共 1 个用例：1 通过，0 失败
+[exit 0]
+
+# 文件：tests/tmp/P4-10/pcoderesult.txt
+start compute\n
+-10
+0
+400
+-5
+end program\n

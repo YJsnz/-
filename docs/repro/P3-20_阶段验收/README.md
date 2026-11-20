@@ -88,6 +88,8 @@ $ ./scripts/verify.sh all
 
 ![01-实验三阶段验收](screenshots/01-stage3.png)
 
+![02-实验三更新版结果展示样例](screenshots/02-display-sample.png)
+
 ## 7. 备注
 
 ### §6.2 阶段验收 checklist
@@ -134,3 +136,12 @@ git push origin stage3
 - 语法/语义单元测试：394 项
 - 实验三端到端用例：18 个
 - 全量端到端用例：29 个
+
+## 8. 更新版结果展示样例运行
+
+- 样例来源：用户提供的 `实验三 结果展示样例-更新版.txt`；旧版 `tests/sample/实验三 结果展示样例 (1).txt` 与该更新版内容不同，本次按更新版验证。
+- 样例副本与可复现用例：`tests/cases/P3-22/testfile.txt`（SHA-256：`EACFA78ECDF28D64566F9FE30076286880067EAE31A64437784AB0C62929B431`）。
+- 命令：`COMPILER="build/compiler.exe" ./scripts/verify.sh P3-22`
+- 结果：通过；`error.txt` 共 14 行，诊断行号及类别码见用例 `expect.txt`。有错误时编译器返回非零状态，验证配置会确认该状态并比较错误文件。
+- 原始日志：[`sample-run.log`](sample-run.log)
+- 截图：![实验三更新版样例错误输出](screenshots/02-display-sample.png)

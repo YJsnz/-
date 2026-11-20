@@ -96,6 +96,8 @@ $ git log --oneline -1
 
 ![01-实验一阶段验收](screenshots/01-stage1.png)
 
+![02-实验一结果展示样例](screenshots/02-display-sample.png)
+
 ## 7. 备注
 
 ### §6.2 阶段验收 checklist
@@ -117,6 +119,15 @@ $ git log --oneline -1
 - `lexer`：91 项（含错误回调）
 - `error_reporter`：11 项
 - 端到端用例：9 个（P1-1、P1-3～P1-10）
+
+## 8. 结果展示样例运行
+
+- 样例来源：`tests/sample/实验一结果展示样例.txt`
+- 可复现用例：`tests/cases/P1-12/`（输入、`--dump-lexer` 配置和完整期望输出）
+- 命令：`COMPILER="build/compiler.exe" ./scripts/verify.sh P1-12`
+- 结果：通过，生成 467 行 `output.txt`。
+- 原始日志：[`sample-run.log`](sample-run.log)
+- 截图：![实验一展示样例输出](screenshots/02-display-sample.png)
 
 ### 阶段标签
 
